@@ -57,11 +57,11 @@
 
 **Interfaces:** Project/category repositories and service methods with validated inputs and typed results. HTTP handlers and OpenAPI are added only in Task 3's authenticated route registry.
 
-- [ ] Test CRUD, pagination, search, category filter, favorites/preferences, and allowed link schemes at the service/repository boundary.
-- [ ] Test invalid IDs, malformed JSON, duplicate links, and missing categories.
-- [ ] Implement parameterized repository queries and domain validation.
-- [ ] Run repository tests; keep management handlers unavailable until Task 3 installs authentication/RBAC/CSRF middleware.
-- [ ] Commit catalog API work and record Phase 2 evidence.
+- [x] Test CRUD, pagination, search, category filter, favorites/preferences, and allowed link schemes at the service/repository boundary.
+- [x] Test invalid IDs, duplicate links, missing categories, and case-insensitive name conflicts. Malformed JSON is tested at the HTTP boundary in Task 3.
+- [x] Implement parameterized repository queries and domain validation.
+- [x] Run repository tests; keep management handlers unavailable until Task 3 installs authentication/RBAC/CSRF middleware.
+- [ ] Commit catalog domain work and record partial Phase 2 evidence; authenticated HTTP routes are added in Task 3.
 
 ### Task 3: Authentication, RBAC, CSRF, sessions, audit
 
@@ -71,6 +71,7 @@
 
 - [ ] Test Argon2id verification, one-time bootstrap refusal, session rotation/expiry/revocation, cookie attributes, and login throttling.
 - [ ] Test anonymous and Viewer mutation denial, role matrix, missing/invalid CSRF, and invalid Origin.
+- [ ] Test malformed JSON and invalid API request bodies at the authenticated HTTP boundary.
 - [ ] Add audit on mutations/actions with request ID and outcome, excluding secrets.
 - [ ] Gate all management route registration behind auth and role middleware; no insecure development bypass.
 - [ ] Run auth/RBAC/API tests and `go test -race ./...`; commit Phase 3 and record evidence.

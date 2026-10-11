@@ -51,5 +51,6 @@ Tasks are checked only after implementation, relevant tests pass, and evidence i
 | Phase | Commit | Verification commands and results | Date |
 |---|---|---|---|
 | Planning | `ca45b2e` | Workspace inspected; no pre-existing files, Git repository, or `.codegraph/` found. Architecture/spec/plan committed. | 2026-10-11 |
-| Phase 1 | Phase 1 commit | `go test ./...` PASS; `go vet ./...` PASS; `go test -race ./...` PASS on Ubuntu WSL (Go 1.26.0); Linux arm64 API cross-build PASS; Linux database mode 0600 regression PASS; frontend clean-lockfile install, unit 1/1 PASS, typecheck PASS, production build PASS on Node 24.21. Docker build/deploy smoke unverified (daemon permission denied). | 2026-10-11 |
+| Phase 1 | `c491168` | `go test ./...` PASS; `go vet ./...` PASS; `go test -race ./...` PASS on Ubuntu WSL (Go 1.26.0); Linux arm64 API cross-build PASS; Linux database mode 0600 regression PASS; frontend clean-lockfile install, unit 1/1 PASS, typecheck PASS, production build PASS on Node 24.21. Docker build/deploy smoke unverified (daemon permission denied). | 2026-10-11 |
+| Phase 2 interim | domain commit | Catalog/category domain CRUD, search, filters, favorites, pagination, URL validation, case-insensitive uniqueness, and ID tests pass. Authenticated API routes and UI remain pending. | 2026-10-11 |
 
