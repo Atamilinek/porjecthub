@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  go:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - run: test -z "$(gofmt -l $(git ls-files '*.go'))"
+      - run: go test -race ./...
+      - run: go vet ./...
+      - run: GOOS=linux GOARCH=arm64 go build ./cmd/api
+
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+          package-manager-cache: false
+      - run: npm ci
+      - run: npm run test:unit
+      - run: npm run typecheck
+      - run: npm run build

@@ -1,0 +1,26 @@
+# Go
+/projecthub-api
+/projecthub-agent
+/coverage.out
+
+# Frontend
+web/node_modules/
+web/dist/
+web/playwright-report/
+web/test-results/
+
+# Local secrets and databases
+.env
+.env.*
+!.env.example
+data/
+/work/
+*.db
+*.db-shm
+*.db-wal
+
+# Editors and OS
+.idea/
+.vscode/
+Thumbs.db
+.DS_Store

@@ -3,10 +3,10 @@
 Tasks are checked only after implementation, relevant tests pass, and evidence is recorded below. A blank status means not complete.
 
 ## Phase 1 — 基础工程
-- [ ] Create the repository layout and Go API/Agent modules.
-- [ ] Initialize Vue 3 + TypeScript + Vite application.
-- [ ] Configure SQLite WAL, foreign keys, and versioned transactional migrations.
-- [ ] Add baseline CI for Go and frontend checks.
+- [x] Initialize the Go project.
+- [x] Initialize Vue 3 + TypeScript + Vite application.
+- [x] Configure SQLite WAL, foreign keys, and versioned transactional migrations.
+- [x] Add baseline CI for Go and frontend checks.
 
 ## Phase 2 — 项目导航
 - [ ] Implement project CRUD, project links, category CRUD, preferences, and validated URL schemes.
@@ -50,5 +50,6 @@ Tasks are checked only after implementation, relevant tests pass, and evidence i
 
 | Phase | Commit | Verification commands and results | Date |
 |---|---|---|---|
-| Planning | pending | Workspace inspected; no pre-existing files, Git repository, or `.codegraph/` found. Go 1.26.5 and Node 24 available. npm and Docker unavailable. | 2026-10-11 |
+| Planning | `ca45b2e` | Workspace inspected; no pre-existing files, Git repository, or `.codegraph/` found. Architecture/spec/plan committed. | 2026-10-11 |
+| Phase 1 | Phase 1 commit | `go test ./...` PASS; `go vet ./...` PASS; `go test -race ./...` PASS on Ubuntu WSL (Go 1.26.0); Linux arm64 API cross-build PASS; Linux database mode 0600 regression PASS; frontend clean-lockfile install, unit 1/1 PASS, typecheck PASS, production build PASS on Node 24.21. Docker build/deploy smoke unverified (daemon permission denied). | 2026-10-11 |
 

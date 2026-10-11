@@ -34,28 +34,33 @@
 
 ### Task 1: Repository foundation and SQLite migrations
 
-**Files:** Create Go module layout under `cmd/api`, `cmd/agent`, `internal/{config,store,migrate}`, `migrations/`; create `go.mod`, `.gitignore`, Makefile, CI workflow, baseline tests.
+**Files:** Create Go module layout under `cmd/api`, `cmd/agent`, `internal/{config,store,migrate}`, `migrations/`; create `go.mod`, `.gitignore`, Makefile, CI workflow, baseline tests; scaffold `web/` Vue/Vite/TypeScript app.
 
 **Interfaces:**
 - Produces `store.Open(path string) (*sql.DB, error)` configured with WAL, foreign keys, and bounded connections.
 - Produces `migrate.Apply(ctx context.Context, db *sql.DB, fs.FS) error` with numbered, transactional migrations.
+- Produces `config.LoadFrom(lookup func(string) string) (Config, error)` with a loopback default listener.
+- Produces an API health handler; management routes remain unregistered until authenticated routing exists.
 
-- [ ] Add migration tests for fresh DB, repeat application, and preservation across reopen.
-- [ ] Confirm new-database test fails before migration implementation.
-- [ ] Implement schema with required tables, indexes, foreign keys, and UUID text IDs.
-- [ ] Run migration and store tests plus `go test ./...`.
-- [ ] Commit Phase 1 foundation and record command/results in `TASKS.md`.
+- [x] Add migration tests for fresh DB, repeat application, and preservation across reopen.
+- [x] Confirm new-database test fails before migration implementation.
+- [x] Implement schema with required tables, indexes, foreign keys, and UUID text IDs.
+- [x] Run migration and store tests plus `go test ./...`.
+- [x] Run frontend unit test, typecheck, and production build using the pinned lockfile.
+- [x] Commit Phase 1 foundation and record command/results in `TASKS.md`.
 
-### Task 2: Project catalog API and validation
+**Additional security regression:** `TestOpenCreatesDatabaseWithOwnerOnlyPermissions` failed first on Linux with mode 0644, then passed after `store.Open` pre-created and chmodded the database to 0600.
 
-**Files:** `internal/projects`, `internal/categories`, `internal/httpapi`, migration additions, API tests, `api/openapi.yaml`.
+### Task 2: Project catalog domain and validation
 
-**Interfaces:** Project/category repositories and service methods; JSON handlers under `/api/v1/projects`, `/api/v1/categories`, with consistent request-ID error envelope and input validation.
+**Files:** `internal/projects`, `internal/categories`, migration additions, domain/repository tests. Do not register or expose management HTTP routes in this task.
 
-- [ ] Test CRUD, pagination, search, category filter, favorites/preferences, and allowed link schemes.
+**Interfaces:** Project/category repositories and service methods with validated inputs and typed results. HTTP handlers and OpenAPI are added only in Task 3's authenticated route registry.
+
+- [ ] Test CRUD, pagination, search, category filter, favorites/preferences, and allowed link schemes at the service/repository boundary.
 - [ ] Test invalid IDs, malformed JSON, duplicate links, and missing categories.
-- [ ] Implement parameterized repository queries and handlers with bounded request bodies.
-- [ ] Run repository and API tests; review OpenAPI against handlers.
+- [ ] Implement parameterized repository queries and domain validation.
+- [ ] Run repository tests; keep management handlers unavailable until Task 3 installs authentication/RBAC/CSRF middleware.
 - [ ] Commit catalog API work and record Phase 2 evidence.
 
 ### Task 3: Authentication, RBAC, CSRF, sessions, audit

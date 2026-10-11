@@ -27,7 +27,7 @@ Browser --HTTPS--> Caddy --private network--> Go API + Vue assets
 
 One repository contains the API, web UI, Agent, migration files, deployment files, tests, and operator documentation. The Go API is a modular monolith with packages for configuration, persistence/migrations, auth/RBAC, projects/catalog, monitoring/SSRF, jobs/audit, and HTTP transport. The Agent has a separate command and packages for socket transport, policy loading, Docker/systemd adapters, and target locking. Interfaces isolate Docker/systemd from policy and job logic so tests use fakes only.
 
-The SQLite schema uses UUID identifiers, foreign keys, indexes, parameterized SQL, WAL, bounded connection concurrency, and numbered migrations. Migration application is transactional. Health samples have configurable retention and scheduled cleanup. Backup uses SQLite's online backup mechanism or a documented quiesced-copy procedure; restore is validated before service start.
+The SQLite schema uses UUID identifiers, foreign keys, indexes, parameterized SQL, WAL, bounded connection concurrency, and numbered migrations. Migration application is transactional. The database directory is created with owner-only permissions and the database file is restricted to mode 0600 on POSIX systems. Health samples have configurable retention and scheduled cleanup. Backup uses SQLite's online backup mechanism or a documented quiesced-copy procedure; restore is validated before service start.
 
 ## Authentication and authorization
 
@@ -57,5 +57,5 @@ Compose runs Caddy and the Web/API, with an explicit persistent data volume and 
 
 ## Delivery gates and known environment constraints
 
-The seven phases in `TASKS.md` define completion. A task is checked only with its test command and result recorded. Authentication/RBAC/CSRF are required before any management API is enabled. Tests must never connect to a real host Docker socket or real systemd services; adapters use a fake engine/transport. The current development host has Go, Node, and Git but no npm executable or Docker CLI/daemon; frontend package installation, container builds, and deployment smoke tests must be reported as unverified unless those tools become available.
+The seven phases in `TASKS.md` define completion. A task is checked only with its test command and result recorded. Authentication/RBAC/CSRF are required before any management API is enabled. Tests must never connect to a real host Docker socket or real systemd services; adapters use a fake engine/transport. Validation uses Go 1.26.x and Node 24.21 with npm; Docker is present only inside WSL without daemon permission, so image builds and deployment smoke tests must be reported as unverified unless access changes.
 
