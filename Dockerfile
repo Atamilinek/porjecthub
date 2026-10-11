@@ -1,11 +1,11 @@
-FROM node:24.21.0-alpine AS web-build
+FROM --platform=$BUILDPLATFORM node:24.21.0-alpine AS web-build
 WORKDIR /src/web
 COPY web/package.json web/package-lock.json ./
 RUN npm ci
 COPY web/ ./
 RUN npm run build
 
-FROM golang:1.26.0-alpine AS go-build
+FROM --platform=$BUILDPLATFORM golang:1.26.0-alpine AS go-build
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
