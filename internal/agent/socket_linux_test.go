@@ -156,3 +156,46 @@ func TestLoadRootPolicyRejectsUntrustedDirectory(t *testing.T) {
 		t.Fatal("non-root policy directory accepted")
 	}
 }
+
+func TestLoadRootPolicyAcceptsRootOwnedPolicy(t *testing.T) {
+	if os.Geteuid() != 0 {
+		t.Skip("requires a root-owned temporary policy")
+	}
+	dir := t.TempDir()
+	path := filepath.Join(dir, "policy.json")
+	if err := os.WriteFile(path, []byte(`{"agent_id":"agent-1","targets":[]}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(path, 0600); err != nil {
+		t.Fatal(err)
+	}
+	info, err := os.Lstat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := validatePolicyFile(info, true); err != nil {
+		t.Fatalf("root-owned policy metadata rejected: %v", err)
+	}
+	policy, err := LoadRootPolicy(path)
+	if err != nil {
+		t.Fatalf("root-owned policy rejected: %v", err)
+	}
+	if policy.AgentID() != "agent-1" {
+		t.Fatalf("agent ID = %q, want agent-1", policy.AgentID())
+	}
+}
+
+func TestListenSocketAcceptsRootOwnedDirectory(t *testing.T) {
+	if os.Geteuid() != 0 {
+		t.Skip("requires a root-owned socket directory")
+	}
+	path := filepath.Join(t.TempDir(), "agent.sock")
+	listener, err := ListenSocket(path, -1)
+	if err != nil {
+		t.Fatalf("root-owned socket directory rejected: %v", err)
+	}
+	defer listener.Close()
+	if err := os.Remove(path); err != nil {
+		t.Fatal(err)
+	}
+}

@@ -7,6 +7,7 @@ import (
 	"golang.org/x/sys/unix"
 	"os"
 	"path/filepath"
+	"syscall"
 )
 
 func LoadRootPolicy(path string) (*Policy, error) {
@@ -14,7 +15,7 @@ func LoadRootPolicy(path string) (*Policy, error) {
 	if err != nil {
 		return nil, fmt.Errorf("stat agent policy directory: %w", err)
 	}
-	parentStat, ok := parent.Sys().(*unix.Stat_t)
+	parentStat, ok := parent.Sys().(*syscall.Stat_t)
 	if !ok || !parent.IsDir() || parent.Mode()&os.ModeSymlink != 0 || parent.Mode().Perm()&0022 != 0 || parentStat.Uid != 0 {
 		return nil, fmt.Errorf("agent policy directory must be root-owned and non-writable by group/other")
 	}
@@ -40,7 +41,7 @@ func validatePolicyFile(info os.FileInfo, requireRoot bool) error {
 	if info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() || info.Mode().Perm()&0022 != 0 {
 		return fmt.Errorf("agent policy must be a regular non-writable file")
 	}
-	stat, ok := info.Sys().(*unix.Stat_t)
+	stat, ok := info.Sys().(*syscall.Stat_t)
 	if !ok {
 		return fmt.Errorf("agent policy ownership cannot be verified")
 	}

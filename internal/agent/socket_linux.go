@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	"golang.org/x/sys/unix"
@@ -140,7 +141,7 @@ func listenSocket(path string, groupID int, requireRootDirectory bool) (net.List
 		return nil, errors.New("agent socket directory must not be group/world writable")
 	}
 	if requireRootDirectory {
-		stat, ok := info.Sys().(*unix.Stat_t)
+		stat, ok := info.Sys().(*syscall.Stat_t)
 		if !ok || stat.Uid != 0 {
 			return nil, errors.New("agent socket directory must be owned by root")
 		}
