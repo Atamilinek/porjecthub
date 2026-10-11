@@ -13,10 +13,12 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/projecthub/projecthub/internal/agent"
 	"github.com/projecthub/projecthub/internal/auth"
 	"github.com/projecthub/projecthub/internal/categories"
 	"github.com/projecthub/projecthub/internal/config"
 	"github.com/projecthub/projecthub/internal/events"
+	"github.com/projecthub/projecthub/internal/jobs"
 	"github.com/projecthub/projecthub/internal/migrate"
 	"github.com/projecthub/projecthub/internal/monitor"
 	"github.com/projecthub/projecthub/internal/projects"
@@ -51,7 +53,16 @@ func main() {
 		os.Exit(1)
 	}
 
-	handler, scheduler := newRuntime(db, cfg.ProbeAllowCIDRs)
+	var agentClient agent.Client
+	if cfg.AgentSocketPath != "" {
+		client, clientErr := agent.NewUnixClient(cfg.AgentSocketPath, 35*time.Second)
+		if clientErr != nil {
+			logger.Error("configure Agent client", "error", clientErr)
+			os.Exit(2)
+		}
+		agentClient = client
+	}
+	handler, scheduler, dispatcher := newRuntime(db, cfg.ProbeAllowCIDRs, agentClient)
 	server := &http.Server{
 		Addr:              cfg.ListenAddress,
 		Handler:           handler,
@@ -62,6 +73,11 @@ func main() {
 	go func() {
 		if err := scheduler.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
 			logger.Error("monitor scheduler stopped", "error", err)
+		}
+	}()
+	go func() {
+		if err := dispatcher.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
+			logger.Error("action dispatcher stopped", "error", err)
 		}
 	}()
 	serveErr := make(chan error, 1)
@@ -89,11 +105,11 @@ func main() {
 }
 
 func newHandler(db *sql.DB) http.Handler {
-	handler, _ := newRuntime(db, nil)
+	handler, _, _ := newRuntime(db, nil, nil)
 	return handler
 }
 
-func newRuntime(db *sql.DB, allowedProbeCIDRs []netip.Prefix) (http.Handler, *monitor.Scheduler) {
+func newRuntime(db *sql.DB, allowedProbeCIDRs []netip.Prefix, agentClient agent.Client) (http.Handler, *monitor.Scheduler, *jobs.Dispatcher) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), time.Second)
@@ -110,8 +126,12 @@ func newRuntime(db *sql.DB, allowedProbeCIDRs []netip.Prefix) (http.Handler, *mo
 	authRoutes.register(mux)
 	(&catalogHTTP{auth: authRoutes, projects: projects.NewService(db), categories: categories.NewService(db)}).register(mux)
 	broker := events.NewBroker(512, 64)
-	monitorService := monitor.NewService(db, monitor.NewDefaultChecker(allowedProbeCIDRs), 10)
+	dispatcher := jobs.NewDispatcher(db, agentClient, broker, 4, 64)
+	checker := monitor.NewDefaultChecker(allowedProbeCIDRs)
+	checker.Agent = monitorAgentProbe{dispatcher: dispatcher}
+	monitorService := monitor.NewService(db, checker, 10)
 	(&monitorHTTP{auth: authRoutes, service: monitorService, broker: broker}).register(mux)
+	(&agentHTTP{auth: authRoutes, db: db, jobs: dispatcher}).register(mux)
 	mux.Handle("/", webapp.Embedded())
-	return requestID(mux), monitor.NewScheduler(monitorService, broker, time.Second)
+	return requestID(mux), monitor.NewScheduler(monitorService, broker, time.Second), dispatcher
 }

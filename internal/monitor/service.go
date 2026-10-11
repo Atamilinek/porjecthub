@@ -15,10 +15,11 @@ import (
 )
 
 var (
-	ErrInvalidCheck     = errors.New("invalid health check")
-	ErrCheckNotFound    = errors.New("health check not found")
-	ErrProjectNotFound  = errors.New("project not found")
-	ErrAgentUnavailable = errors.New("agent unavailable")
+	ErrInvalidCheck        = errors.New("invalid health check")
+	ErrCheckNotFound       = errors.New("health check not found")
+	ErrProjectNotFound     = errors.New("project not found")
+	ErrAgentTargetNotFound = errors.New("agent target not found")
+	ErrAgentUnavailable    = errors.New("agent unavailable")
 )
 
 type Kind string
@@ -81,6 +82,18 @@ func (s *Service) Create(ctx context.Context, projectID string, input CreateInpu
 	}
 	if err := normalizeCheck(&input); err != nil {
 		return HealthCheck{}, err
+	}
+	if input.Kind == KindAgent {
+		var mappedProject string
+		if err := s.db.QueryRowContext(ctx, "SELECT project_id FROM service_targets WHERE id=?", input.Target).Scan(&mappedProject); err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return HealthCheck{}, ErrAgentTargetNotFound
+			}
+			return HealthCheck{}, err
+		}
+		if mappedProject != projectID {
+			return HealthCheck{}, ErrAgentTargetNotFound
+		}
 	}
 	var exists int
 	if err := s.db.QueryRowContext(ctx, "SELECT count(*) FROM projects WHERE id=?", projectID).Scan(&exists); err != nil {
@@ -217,7 +230,7 @@ func (s *Service) RunOnce(ctx context.Context, id string) (HealthCheck, error) {
 	} else {
 		result, probeErr = s.checker.Check(probeCtx, check)
 	}
-	agentDown := check.Kind == KindAgent && (errors.Is(probeErr, ErrAgentUnavailable) || probeErr != nil)
+	agentDown := check.Kind == KindAgent && errors.Is(probeErr, ErrAgentUnavailable)
 	return s.record(ctx, check, result, probeErr, agentDown)
 }
 func (s *Service) record(ctx context.Context, check HealthCheck, result ProbeResult, probeErr error, agentDown bool) (HealthCheck, error) {
@@ -281,7 +294,7 @@ func normalizeCheck(input *CreateInput) error {
 			return ErrInvalidCheck
 		}
 	case KindAgent:
-		if strings.ContainsAny(input.Target, " /\\") {
+		if !ids.IsUUID(input.Target) {
 			return ErrInvalidCheck
 		}
 	}

@@ -1,6 +1,7 @@
 package config_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/projecthub/projecthub/internal/config"
@@ -53,5 +54,27 @@ func TestLoadFromRejectsInvalidListenAddress(t *testing.T) {
 	})
 	if err == nil {
 		t.Fatal("LoadFrom() accepted an invalid listen address")
+	}
+}
+
+func TestLoadFromRequiresAgentSocketToBeShortAbsolutePath(t *testing.T) {
+	for _, value := range []string{"relative.sock", "/" + strings.Repeat("a", 110)} {
+		if _, err := config.LoadFrom(func(key string) string {
+			if key == "PROJECTHUB_AGENT_SOCKET" {
+				return value
+			}
+			return ""
+		}); err == nil {
+			t.Errorf("accepted unsafe Agent socket path %q", value)
+		}
+	}
+	cfg, err := config.LoadFrom(func(key string) string {
+		if key == "PROJECTHUB_AGENT_SOCKET" {
+			return "/run/projecthub-agent/agent.sock"
+		}
+		return ""
+	})
+	if err != nil || cfg.AgentSocketPath != "/run/projecthub-agent/agent.sock" {
+		t.Fatalf("AgentSocketPath=%q err=%v", cfg.AgentSocketPath, err)
 	}
 }

@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/netip"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -18,6 +19,7 @@ type Config struct {
 	ReadHeaderTimeout time.Duration
 	ShutdownTimeout   time.Duration
 	ProbeAllowCIDRs   []netip.Prefix
+	AgentSocketPath   string
 }
 
 func Load() (Config, error) {
@@ -33,6 +35,7 @@ func LoadFrom(lookup func(string) string) (Config, error) {
 		ListenAddress:     valueOrDefault(lookup("PROJECTHUB_LISTEN"), "127.0.0.1:8080"),
 		ReadHeaderTimeout: 5 * time.Second,
 		ShutdownTimeout:   10 * time.Second,
+		AgentSocketPath:   strings.TrimSpace(lookup("PROJECTHUB_AGENT_SOCKET")),
 	}
 	allowCIDRs := strings.TrimSpace(lookup("PROJECTHUB_PROBE_ALLOW_CIDRS"))
 	if allowCIDRs != "" {
@@ -44,6 +47,9 @@ func LoadFrom(lookup func(string) string) (Config, error) {
 	}
 	if cfg.DatabasePath == "" {
 		return Config{}, fmt.Errorf("PROJECTHUB_DB_PATH cannot be empty")
+	}
+	if cfg.AgentSocketPath != "" && (!filepath.IsAbs(cfg.AgentSocketPath) || len(cfg.AgentSocketPath) > 100 || strings.ContainsAny(cfg.AgentSocketPath, "\r\n\x00")) {
+		return Config{}, fmt.Errorf("PROJECTHUB_AGENT_SOCKET must be a short absolute socket path")
 	}
 	host, portText, err := net.SplitHostPort(cfg.ListenAddress)
 	if err != nil {

@@ -130,3 +130,44 @@ test('opens persisted health monitoring and creates a protected check', async ({
   await page.getByRole('button', { name: '创建监控' }).click()
   await expect.poll(() => created).toBe(true)
 })
+
+test('registers an Agent host, binds a policy target, and submits an idempotent action', async ({ page }) => {
+  let hostCreated = false
+  let targetCreated = false
+  let actionCreated = false
+  const host = { id: 'h-1', name: 'lab-agent', agent_id: 'agent-lab', last_seen_at: 1, created_at: 1, updated_at: 1 }
+  const target = { id: 't-1', project_id: 'p-1', host_id: 'h-1', host_name: 'lab-agent', agent_id: 'agent-lab', agent_target_id: 'allowlisted-web', kind: 'docker_container', display_name: 'Web worker', created_at: 1, state: 'running' }
+  const job = { id: 'j-1', request_id: 'r-1', actor_id: 'u-1', project_id: 'p-1', target_id: 't-1', action: 'restart', status: actionCreated ? 'succeeded' : 'queued', result: '', error_code: '', created_at: 1 }
+  await page.route('**/api/v1/**', async (route) => {
+    const request = route.request()
+    const path = new URL(request.url()).pathname
+    if (path.endsWith('/session')) await route.fulfill({ json: { user: { id: 'u-1', username: 'admin', role: 'admin', disabled: false, createdAt: 1 }, csrfToken: 'csrf-e2e' } })
+    else if (path.endsWith('/categories')) await route.fulfill({ json: { items: [], count: 0 } })
+    else if (path.endsWith('/projects')) await route.fulfill({ json: { items: [{ id: 'p-1', name: 'Compiler', description: '', icon: '', category_id: '', sort_order: 0, favorite: false, created_at: 1, updated_at: 1, links: [] }], count: 1 } })
+    else if (path.endsWith('/events')) await route.fulfill({ status: 200, contentType: 'text/event-stream', body: ': connected\n\n' })
+    else if (path.endsWith('/hosts') && request.method() === 'POST') { expect(request.headers()['x-csrf-token']).toBe('csrf-e2e'); hostCreated = true; await route.fulfill({ status: 201, json: host }) }
+    else if (path.endsWith('/hosts')) await route.fulfill({ json: { items: hostCreated ? [host] : [], count: hostCreated ? 1 : 0 } })
+    else if (path.endsWith('/service-targets') && request.method() === 'POST') { expect(request.headers()['x-csrf-token']).toBe('csrf-e2e'); expect(request.postDataJSON()).toMatchObject({ project_id: 'p-1', host_id: 'h-1', agent_target_id: 'allowlisted-web' }); targetCreated = true; await route.fulfill({ status: 201, json: target }) }
+    else if (path.endsWith('/service-targets/t-1/status')) await route.fulfill({ json: { state: 'running' } })
+    else if (path.endsWith('/service-targets') && request.method() === 'GET') await route.fulfill({ json: { items: targetCreated ? [target] : [], count: targetCreated ? 1 : 0 } })
+    else if (path.endsWith('/actions') && request.method() === 'POST') { expect(request.headers()['x-csrf-token']).toBe('csrf-e2e'); expect(request.headers()['idempotency-key']).toBeTruthy(); actionCreated = true; await route.fulfill({ status: 202, json: job }) }
+    else if (path.endsWith('/action-jobs/j-1')) await route.fulfill({ json: { ...job, status: 'succeeded' } })
+    else if (path.endsWith('/action-jobs')) await route.fulfill({ json: { items: actionCreated ? [{ ...job, status: 'succeeded' }] : [], count: actionCreated ? 1 : 0 } })
+    else await route.fulfill({ status: 404, body: 'not found' })
+  })
+  await page.goto('/')
+  await page.getByRole('button', { name: '服务控制' }).click()
+  await page.getByRole('button', { name: '添加主机' }).click()
+  await page.getByLabel('主机名称').fill('lab-agent')
+  await page.getByLabel('Agent ID').fill('agent-lab')
+  await page.getByRole('button', { name: '保存主机' }).click()
+  await page.getByRole('button', { name: '绑定服务目标' }).click()
+  await page.getByLabel('Agent 策略目标 ID').fill('allowlisted-web')
+  await page.getByLabel('显示名称').fill('Web worker')
+  await page.getByRole('button', { name: '绑定目标' }).click()
+  await expect(page.getByText('Web worker · Compiler')).toBeVisible()
+  await expect(page.getByText('运行中')).toBeVisible()
+  await page.getByRole('button', { name: '重启' }).click()
+  await expect.poll(() => actionCreated).toBe(true)
+  await expect(page.getByText('restart · succeeded')).toBeVisible()
+})

@@ -105,8 +105,11 @@ func TestSchedulerRunsDueCheckAndPublishesStateEvent(t *testing.T) {
 func TestAgentCheckFailurePersistsDistinctAgentUnreachableState(t *testing.T) {
 	db := monitorDB(t)
 	projectID := createMonitorProject(t, db)
+	if _, err := db.Exec(`INSERT INTO hosts(id,name,agent_id,created_at,updated_at) VALUES('33333333-3333-4333-8333-333333333333','Agent','agent-123',1,1); INSERT INTO service_targets(id,project_id,host_id,agent_target_id,kind,display_name,created_at) VALUES('44444444-4444-4444-8444-444444444444',?,'33333333-3333-4333-8333-333333333333','agent-123','docker_container','Target',1)`, projectID); err != nil {
+		t.Fatal(err)
+	}
 	service := NewService(db, &DefaultChecker{}, 1)
-	check, err := service.Create(t.Context(), projectID, CreateInput{Kind: KindAgent, Target: "agent-123", Enabled: true})
+	check, err := service.Create(t.Context(), projectID, CreateInput{Kind: KindAgent, Target: "44444444-4444-4444-8444-444444444444", Enabled: true})
 	if err != nil {
 		t.Fatal(err)
 	}

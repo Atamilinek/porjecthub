@@ -157,7 +157,7 @@ func monitorError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, monitor.ErrInvalidCheck):
 		http.Error(w, "invalid health check", http.StatusBadRequest)
-	case errors.Is(err, monitor.ErrProjectNotFound), errors.Is(err, monitor.ErrCheckNotFound):
+	case errors.Is(err, monitor.ErrProjectNotFound), errors.Is(err, monitor.ErrCheckNotFound), errors.Is(err, monitor.ErrAgentTargetNotFound):
 		http.Error(w, "resource not found", http.StatusNotFound)
 	default:
 		http.Error(w, "internal error", http.StatusInternalServerError)

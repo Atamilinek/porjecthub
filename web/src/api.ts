@@ -75,6 +75,9 @@ export interface HealthSample {
   detail: string
   checked_at: number
 }
+export interface Host { id: string; name: string; agent_id: string; last_seen_at: number | null; created_at: number; updated_at: number }
+export interface ServiceTarget { id: string; project_id: string; host_id: string; host_name: string; agent_id: string; agent_target_id: string; kind: 'docker_container' | 'systemd_unit'; display_name: string; created_at: number; state?: 'running' | 'stopped' | 'unknown' }
+export interface ActionJob { id: string; request_id: string; actor_id: string; project_id: string; target_id: string; action: 'start' | 'stop' | 'restart'; status: 'queued' | 'running' | 'succeeded' | 'failed' | 'timed_out'; result: string; error_code: string; created_at: number }
 
 let csrfToken = ''
 
@@ -155,4 +158,14 @@ export const api = {
   listHealthSamples(id: string) {
     return request<{ items: HealthSample[]; count: number }>(`/health-checks/${encodeURIComponent(id)}/samples`)
   },
+  listHosts() { return request<{ items: Host[]; count: number }>('/hosts') },
+  createHost(input: { name: string; agent_id: string }) { return request<Host>('/hosts', { method: 'POST', body: JSON.stringify(input) }) },
+  deleteHost(id: string) { return request<void>(`/hosts/${encodeURIComponent(id)}`, { method: 'DELETE' }) },
+  listServiceTargets() { return request<{ items: ServiceTarget[]; count: number }>('/service-targets') },
+  createServiceTarget(input: { project_id: string; host_id: string; agent_target_id: string; kind: ServiceTarget['kind']; display_name: string }) { return request<ServiceTarget>('/service-targets', { method: 'POST', body: JSON.stringify(input) }) },
+  deleteServiceTarget(id: string) { return request<void>(`/service-targets/${encodeURIComponent(id)}`, { method: 'DELETE' }) },
+  serviceTargetStatus(id: string) { return request<{ state: ServiceTarget['state'] }>(`/service-targets/${encodeURIComponent(id)}/status`) },
+  createAction(id: string, action: ActionJob['action'], idempotencyKey: string) { return request<ActionJob>(`/service-targets/${encodeURIComponent(id)}/actions`, { method: 'POST', headers: { 'Idempotency-Key': idempotencyKey }, body: JSON.stringify({ action }) }) },
+  getActionJob(id: string) { return request<ActionJob>(`/action-jobs/${encodeURIComponent(id)}`) },
+  listActionJobs() { return request<{ items: ActionJob[]; count: number }>('/action-jobs') },
 }
