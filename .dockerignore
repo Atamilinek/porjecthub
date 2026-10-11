@@ -9,6 +9,7 @@ backups
 node_modules
 web/node_modules
 web/dist
+internal/webapp/dist
 web/test-results
 web/playwright-report
 .env
