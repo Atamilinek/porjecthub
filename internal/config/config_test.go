@@ -19,6 +19,31 @@ func TestLoadFromUsesLoopbackDefault(t *testing.T) {
 	}
 }
 
+func TestLoadFromParsesPrivateProbeAllowCIDRs(t *testing.T) {
+	cfg, err := config.LoadFrom(func(key string) string {
+		if key == "PROJECTHUB_PROBE_ALLOW_CIDRS" {
+			return "10.8.0.0/24, fc00::/8"
+		}
+		return ""
+	})
+	if err != nil || len(cfg.ProbeAllowCIDRs) != 2 {
+		t.Fatalf("LoadFrom() allow CIDRs=%v err=%v, want two private prefixes", cfg.ProbeAllowCIDRs, err)
+	}
+}
+
+func TestLoadFromRejectsBroadOrPublicProbeCIDRs(t *testing.T) {
+	for _, value := range []string{"0.0.0.0/0", "10.0.0.0/7", "8.8.8.0/24"} {
+		if _, err := config.LoadFrom(func(key string) string {
+			if key == "PROJECTHUB_PROBE_ALLOW_CIDRS" {
+				return value
+			}
+			return ""
+		}); err == nil {
+			t.Errorf("LoadFrom() accepted unsafe probe CIDR %q", value)
+		}
+	}
+}
+
 func TestLoadFromRejectsInvalidListenAddress(t *testing.T) {
 	_, err := config.LoadFrom(func(key string) string {
 		if key == "PROJECTHUB_LISTEN" {

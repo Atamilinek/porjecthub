@@ -51,6 +51,31 @@ export interface Session {
   expiresAt?: number
 }
 
+export interface HealthCheck {
+  id: string
+  project_id: string
+  kind: 'http' | 'tcp' | 'agent'
+  target: string
+  interval_seconds: number
+  timeout_seconds: number
+  failure_threshold: number
+  recovery_threshold: number
+  enabled: boolean
+  state: 'checking' | 'healthy' | 'degraded' | 'offline' | 'unknown' | 'agent_unreachable'
+  failure_count: number
+  recovery_count: number
+  last_checked_at: number | null
+}
+
+export interface HealthSample {
+  id: string
+  check_id: string
+  state: HealthCheck['state']
+  latency_ms: number | null
+  detail: string
+  checked_at: number
+}
+
 let csrfToken = ''
 
 export class APIError extends Error {
@@ -117,5 +142,17 @@ export const api = {
   },
   deleteCategory(id: string) {
     return request<void>(`/categories/${encodeURIComponent(id)}`, { method: 'DELETE' })
+  },
+  listHealthChecks() {
+    return request<{ items: HealthCheck[]; count: number }>('/health-checks')
+  },
+  createHealthCheck(input: { project_id: string; kind: HealthCheck['kind']; target: string; enabled: boolean }) {
+    return request<HealthCheck>('/health-checks', { method: 'POST', body: JSON.stringify(input) })
+  },
+  deleteHealthCheck(id: string) {
+    return request<void>(`/health-checks/${encodeURIComponent(id)}`, { method: 'DELETE' })
+  },
+  listHealthSamples(id: string) {
+    return request<{ items: HealthSample[]; count: number }>(`/health-checks/${encodeURIComponent(id)}/samples`)
   },
 }

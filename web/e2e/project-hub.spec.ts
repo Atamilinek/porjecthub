@@ -101,3 +101,32 @@ test('shows the API permission denial instead of pretending a project save succe
   await expect(page.getByRole('alert')).toContainText('服务器拒绝了此操作')
   await expect(page.getByText('Restricted project')).toHaveCount(0)
 })
+
+test('opens persisted health monitoring and creates a protected check', async ({ page }) => {
+  let created = false
+  const project = { id: 'p-1', name: 'Compiler', description: '', icon: '', category_id: '', sort_order: 0, favorite: false, created_at: 1, updated_at: 1, links: [] }
+  const check = { id: 'hc-1', project_id: 'p-1', kind: 'http', target: 'https://status.example.com/health', interval_seconds: 30, timeout_seconds: 5, failure_threshold: 3, recovery_threshold: 2, enabled: true, state: 'healthy', failure_count: 0, recovery_count: 0, last_checked_at: 1 }
+  await page.route('**/api/v1/**', async (route) => {
+    const request = route.request()
+    const path = new URL(request.url()).pathname
+    if (path.endsWith('/session')) await route.fulfill({ json: { user: { id: 'u-1', username: 'admin', role: 'admin', disabled: false, createdAt: 1 }, csrfToken: 'csrf-e2e' } })
+    else if (path.endsWith('/categories')) await route.fulfill({ json: { items: [], count: 0 } })
+    else if (path.endsWith('/projects')) await route.fulfill({ json: { items: [project], count: 1 } })
+    else if (path.endsWith('/events')) await route.fulfill({ status: 200, contentType: 'text/event-stream', body: 'id: 1\nevent: health.state\ndata: {"check_id":"hc-1","state":"healthy"}\n\n' })
+    else if (path.endsWith('/health-checks') && request.method() === 'POST') {
+      expect(request.headers()['x-csrf-token']).toBe('csrf-e2e')
+      expect(request.postDataJSON()).toMatchObject({ project_id: 'p-1', kind: 'http', enabled: true })
+      created = true
+      await route.fulfill({ status: 201, json: check })
+    } else if (path.endsWith('/health-checks')) await route.fulfill({ json: { items: [check], count: 1 } })
+    else await route.fulfill({ status: 404, body: 'not found' })
+  })
+  await page.goto('/')
+  await page.getByRole('button', { name: '运行监控' }).click()
+  await expect(page.getByText('status.example.com/health')).toBeVisible()
+  await expect(page.getByText('运行正常')).toBeVisible()
+  await page.getByRole('button', { name: '添加监控' }).click()
+  await page.getByLabel('目标地址').fill('https://status.example.com/health')
+  await page.getByRole('button', { name: '创建监控' }).click()
+  await expect.poll(() => created).toBe(true)
+})

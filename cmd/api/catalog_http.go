@@ -83,7 +83,7 @@ func (c *catalogHTTP) createProject(w http.ResponseWriter, r *http.Request) {
 		writeCatalogError(w, err)
 		return
 	}
-	if err = c.auth.audit(r, principalFromRequest(r).User.ID, "project.create", "success"); err != nil {
+	if err = c.auth.auditTarget(r, principalFromRequest(r).User.ID, "project", item.ID, "project.create", "success"); err != nil {
 		http.Error(w, "audit unavailable", http.StatusInternalServerError)
 		return
 	}
@@ -100,7 +100,7 @@ func (c *catalogHTTP) updateProject(w http.ResponseWriter, r *http.Request) {
 		writeCatalogError(w, err)
 		return
 	}
-	if err = c.auth.audit(r, principalFromRequest(r).User.ID, "project.update", "success"); err != nil {
+	if err = c.auth.auditTarget(r, principalFromRequest(r).User.ID, "project", item.ID, "project.update", "success"); err != nil {
 		http.Error(w, "audit unavailable", http.StatusInternalServerError)
 		return
 	}
@@ -111,7 +111,7 @@ func (c *catalogHTTP) deleteProject(w http.ResponseWriter, r *http.Request) {
 		writeCatalogError(w, err)
 		return
 	}
-	if err := c.auth.audit(r, principalFromRequest(r).User.ID, "project.delete", "success"); err != nil {
+	if err := c.auth.auditTarget(r, principalFromRequest(r).User.ID, "project", r.PathValue("id"), "project.delete", "success"); err != nil {
 		http.Error(w, "audit unavailable", http.StatusInternalServerError)
 		return
 	}
@@ -130,7 +130,7 @@ func (c *catalogHTTP) favoriteProject(w http.ResponseWriter, r *http.Request) {
 		writeCatalogError(w, err)
 		return
 	}
-	if err := c.auth.audit(r, p.User.ID, "project.favorite", "success"); err != nil {
+	if err := c.auth.auditTarget(r, p.User.ID, "project", r.PathValue("id"), "project.favorite", "success"); err != nil {
 		http.Error(w, "audit unavailable", http.StatusInternalServerError)
 		return
 	}
@@ -163,7 +163,7 @@ func (c *catalogHTTP) createCategory(w http.ResponseWriter, r *http.Request) {
 		writeCatalogError(w, err)
 		return
 	}
-	if err = c.auth.audit(r, principalFromRequest(r).User.ID, "category.create", "success"); err != nil {
+	if err = c.auth.auditTarget(r, principalFromRequest(r).User.ID, "category", item.ID, "category.create", "success"); err != nil {
 		http.Error(w, "audit unavailable", http.StatusInternalServerError)
 		return
 	}
@@ -180,7 +180,7 @@ func (c *catalogHTTP) updateCategory(w http.ResponseWriter, r *http.Request) {
 		writeCatalogError(w, err)
 		return
 	}
-	if err = c.auth.audit(r, principalFromRequest(r).User.ID, "category.update", "success"); err != nil {
+	if err = c.auth.auditTarget(r, principalFromRequest(r).User.ID, "category", item.ID, "category.update", "success"); err != nil {
 		http.Error(w, "audit unavailable", http.StatusInternalServerError)
 		return
 	}
@@ -191,7 +191,7 @@ func (c *catalogHTTP) deleteCategory(w http.ResponseWriter, r *http.Request) {
 		writeCatalogError(w, err)
 		return
 	}
-	if err := c.auth.audit(r, principalFromRequest(r).User.ID, "category.delete", "success"); err != nil {
+	if err := c.auth.auditTarget(r, principalFromRequest(r).User.ID, "category", r.PathValue("id"), "category.delete", "success"); err != nil {
 		http.Error(w, "audit unavailable", http.StatusInternalServerError)
 		return
 	}

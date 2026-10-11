@@ -3,10 +3,13 @@ package config
 import (
 	"fmt"
 	"net"
+	"net/netip"
 	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/projecthub/projecthub/internal/monitor"
 )
 
 type Config struct {
@@ -14,6 +17,7 @@ type Config struct {
 	ListenAddress     string
 	ReadHeaderTimeout time.Duration
 	ShutdownTimeout   time.Duration
+	ProbeAllowCIDRs   []netip.Prefix
 }
 
 func Load() (Config, error) {
@@ -29,6 +33,14 @@ func LoadFrom(lookup func(string) string) (Config, error) {
 		ListenAddress:     valueOrDefault(lookup("PROJECTHUB_LISTEN"), "127.0.0.1:8080"),
 		ReadHeaderTimeout: 5 * time.Second,
 		ShutdownTimeout:   10 * time.Second,
+	}
+	allowCIDRs := strings.TrimSpace(lookup("PROJECTHUB_PROBE_ALLOW_CIDRS"))
+	if allowCIDRs != "" {
+		prefixes, parseErr := monitor.ParseAllowedCIDRs(strings.Split(allowCIDRs, ","))
+		if parseErr != nil {
+			return Config{}, fmt.Errorf("PROJECTHUB_PROBE_ALLOW_CIDRS is invalid: %w", parseErr)
+		}
+		cfg.ProbeAllowCIDRs = prefixes
 	}
 	if cfg.DatabasePath == "" {
 		return Config{}, fmt.Errorf("PROJECTHUB_DB_PATH cannot be empty")

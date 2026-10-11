@@ -74,7 +74,7 @@ func (a *authHTTP) login(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "session unavailable", http.StatusInternalServerError)
 		return
 	}
-	if err := a.audit(r, user.ID, "login", "success"); err != nil {
+	if err := a.auditTarget(r, user.ID, "user", user.ID, "login", "success"); err != nil {
 		_ = a.service.RevokeSession(r.Context(), session.Token)
 		http.Error(w, "audit unavailable", http.StatusInternalServerError)
 		return
@@ -96,7 +96,7 @@ func (a *authHTTP) logout(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	if err := a.audit(r, p.User.ID, "logout", "success"); err != nil {
+	if err := a.auditTarget(r, p.User.ID, "session", p.SessionID, "logout", "success"); err != nil {
 		http.Error(w, "audit unavailable", http.StatusInternalServerError)
 		return
 	}
@@ -105,12 +105,16 @@ func (a *authHTTP) logout(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *authHTTP) audit(r *http.Request, actor, action, outcome string) error {
+	return a.auditTarget(r, actor, "", "", action, outcome)
+}
+
+func (a *authHTTP) auditTarget(r *http.Request, actor, targetType, targetID, action, outcome string) error {
 	request, _ := r.Context().Value(requestIDKey{}).(string)
 	eventID, err := ids.NewUUID()
 	if err != nil {
 		return err
 	}
-	_, err = a.db.ExecContext(r.Context(), "INSERT INTO audit_logs(id,actor_id,request_id,event_type,target_type,target_id,action,outcome,detail,created_at) VALUES(?,?,?,'security','','',?,?, '',?)", eventID, nullable(actor), request, action, outcome, time.Now().Unix())
+	_, err = a.db.ExecContext(r.Context(), "INSERT INTO audit_logs(id,actor_id,request_id,event_type,target_type,target_id,action,outcome,detail,created_at) VALUES(?,?,?,'security',?,?,?,?, '',?)", eventID, nullable(actor), request, targetType, targetID, action, outcome, time.Now().Unix())
 	return err
 }
 

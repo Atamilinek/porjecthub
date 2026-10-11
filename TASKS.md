@@ -19,10 +19,10 @@ Tasks are checked only after implementation, relevant tests pass, and evidence i
 - [x] Implement audit log and authorization/CSRF tests.
 
 ## Phase 4 — 运行监控
-- [ ] Implement HTTP and TCP health checks with SSRF-safe dialing and bounded response handling.
-- [ ] Implement explicit monitoring state machine, scheduler, timeout, thresholds, concurrency, caching, and retention.
-- [ ] Implement authenticated SSE with reconnect support and polling fallback.
-- [ ] Implement Agent status and Agent-unreachable distinction.
+- [x] Implement HTTP and TCP health checks with SSRF-safe dialing and bounded response handling.
+- [x] Implement explicit monitoring state machine, scheduler, timeout, thresholds, concurrency, caching, and retention.
+- [x] Implement authenticated SSE with reconnect support and polling fallback.
+- [x] Implement Agent status and Agent-unreachable distinction.
 
 ## Phase 5 — 执行 Agent
 - [ ] Implement separate Linux Agent and restricted Unix socket API.
@@ -55,4 +55,5 @@ Tasks are checked only after implementation, relevant tests pass, and evidence i
 | Phase 2 interim | `74eb336` | `go test ./...` PASS; `go vet ./...` PASS; `go test -race ./...` PASS on Ubuntu WSL. Catalog/category domain CRUD, search, filters, favorites, pagination, URL validation, case-insensitive uniqueness, and ID tests pass. Authenticated API routes and UI remain pending. | 2026-10-11 |
 | Phase 3 | `e976945` | Argon2id and bootstrap/session/RBAC/CSRF/Origin/audit HTTP tests PASS; `go test ./...` PASS; `go vet ./...` PASS; `go test -race ./...` PASS on Ubuntu WSL (Go 1.26.0). At that commit, only login/session/logout handlers were registered; catalog routes were added under auth/RBAC/CSRF in the Phase 2/3 integration below. | 2026-10-11 |
 | Phase 2/3 integration | `3efe5e0` | Authenticated project/category API CRUD, favorite/search filters, static SPA fallback, authorization/CSRF/API tests PASS; `go test ./...`, `go vet ./...`, and WSL `go test -race ./...` PASS; Vue unit 4/4, typecheck, production build, Playwright Chromium E2E 2/2 (390px layout, create/edit/delete/favorite and denied-save error) PASS. E2E uses a controlled API stub; backend handlers are separately exercised through SQLite-backed httptest integration. Docker build not run. | 2026-10-11 |
+| Phase 4 | `bf9c083` | HTTP/TCP probe, DNS pinning/private-range rejection, thresholds, scheduler, retention, SSE authorization/replay, API RBAC/audit, and migration tests PASS; `go test ./...`, `go vet ./...`, WSL `go test -race ./...` PASS. Vue unit 5/5, typecheck, production build, Playwright Chromium E2E 3/3 including monitor creation PASS. Tests use fake resolvers/dialers and controlled browser API responses; no real host/container endpoints contacted. | 2026-10-11 |
 

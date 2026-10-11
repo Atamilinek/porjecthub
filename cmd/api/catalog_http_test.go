@@ -94,6 +94,10 @@ func TestAuthenticatedCatalogCRUDAndFilters(t *testing.T) {
 	if err := db.QueryRow("SELECT count(*) FROM audit_logs WHERE actor_id=?", admin.ID).Scan(&audits); err != nil || audits != 7 {
 		t.Fatalf("catalog mutation audit count=%d err=%v want=7", audits, err)
 	}
+	var targetType, targetID string
+	if err := db.QueryRow("SELECT target_type,target_id FROM audit_logs WHERE actor_id=? AND action='project.create'", admin.ID).Scan(&targetType, &targetID); err != nil || targetType != "project" || targetID != project.ID {
+		t.Fatalf("project audit target=%q/%q err=%v", targetType, targetID, err)
+	}
 }
 
 func TestCatalogRoutesEnforceAuthRoleCSRFAndOrigin(t *testing.T) {

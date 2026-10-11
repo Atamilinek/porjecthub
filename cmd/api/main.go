@@ -7,6 +7,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"net/netip"
 	"os"
 	"os/signal"
 	"syscall"
@@ -15,7 +16,9 @@ import (
 	"github.com/projecthub/projecthub/internal/auth"
 	"github.com/projecthub/projecthub/internal/categories"
 	"github.com/projecthub/projecthub/internal/config"
+	"github.com/projecthub/projecthub/internal/events"
 	"github.com/projecthub/projecthub/internal/migrate"
+	"github.com/projecthub/projecthub/internal/monitor"
 	"github.com/projecthub/projecthub/internal/projects"
 	"github.com/projecthub/projecthub/internal/store"
 	"github.com/projecthub/projecthub/internal/webapp"
@@ -48,13 +51,19 @@ func main() {
 		os.Exit(1)
 	}
 
+	handler, scheduler := newRuntime(db, cfg.ProbeAllowCIDRs)
 	server := &http.Server{
 		Addr:              cfg.ListenAddress,
-		Handler:           newHandler(db),
+		Handler:           handler,
 		ReadHeaderTimeout: cfg.ReadHeaderTimeout,
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	go func() {
+		if err := scheduler.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
+			logger.Error("monitor scheduler stopped", "error", err)
+		}
+	}()
 	serveErr := make(chan error, 1)
 	go func() {
 		logger.Info("Project Hub API listening", "address", cfg.ListenAddress)
@@ -80,6 +89,11 @@ func main() {
 }
 
 func newHandler(db *sql.DB) http.Handler {
+	handler, _ := newRuntime(db, nil)
+	return handler
+}
+
+func newRuntime(db *sql.DB, allowedProbeCIDRs []netip.Prefix) (http.Handler, *monitor.Scheduler) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), time.Second)
@@ -95,6 +109,9 @@ func newHandler(db *sql.DB) http.Handler {
 	authRoutes := &authHTTP{service: auth.NewService(db), limiter: auth.NewLoginLimiter(5, 15*time.Minute), sourceLimiter: auth.NewLoginLimiter(20, 15*time.Minute), db: db}
 	authRoutes.register(mux)
 	(&catalogHTTP{auth: authRoutes, projects: projects.NewService(db), categories: categories.NewService(db)}).register(mux)
+	broker := events.NewBroker(512, 64)
+	monitorService := monitor.NewService(db, monitor.NewDefaultChecker(allowedProbeCIDRs), 10)
+	(&monitorHTTP{auth: authRoutes, service: monitorService, broker: broker}).register(mux)
 	mux.Handle("/", webapp.Embedded())
-	return requestID(mux)
+	return requestID(mux), monitor.NewScheduler(monitorService, broker, time.Second)
 }
