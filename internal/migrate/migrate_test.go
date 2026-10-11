@@ -34,8 +34,8 @@ func TestApplyCreatesSchemaAndIsIdempotent(t *testing.T) {
 	if err := db.QueryRow(`SELECT count(*) FROM schema_migrations`).Scan(&applied); err != nil {
 		t.Fatalf("query migration ledger: %v", err)
 	}
-	if applied != 2 {
-		t.Fatalf("applied migration count = %d, want 2", applied)
+	if applied != 3 {
+		t.Fatalf("applied migration count = %d, want 3", applied)
 	}
 }
 

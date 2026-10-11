@@ -14,9 +14,9 @@ Tasks are checked only after implementation, relevant tests pass, and evidence i
 - [ ] Implement add/edit flows and project navigation.
 
 ## Phase 3 — 认证安全
-- [ ] Implement Argon2id login, one-time administrator bootstrap, secure sessions, logout, expiration, and login throttling.
-- [ ] Implement Viewer/Operator/Admin server-side RBAC and CSRF/Origin checks before enabling management endpoints.
-- [ ] Implement audit log and authorization/CSRF tests.
+- [x] Implement Argon2id login, one-time administrator bootstrap, secure sessions, logout, expiration, and login throttling.
+- [x] Implement Viewer/Operator/Admin server-side RBAC and CSRF/Origin checks before enabling management endpoints.
+- [x] Implement audit log and authorization/CSRF tests.
 
 ## Phase 4 — 运行监控
 - [ ] Implement HTTP and TCP health checks with SSRF-safe dialing and bounded response handling.
@@ -52,5 +52,6 @@ Tasks are checked only after implementation, relevant tests pass, and evidence i
 |---|---|---|---|
 | Planning | `ca45b2e` | Workspace inspected; no pre-existing files, Git repository, or `.codegraph/` found. Architecture/spec/plan committed. | 2026-10-11 |
 | Phase 1 | `c491168` | `go test ./...` PASS; `go vet ./...` PASS; `go test -race ./...` PASS on Ubuntu WSL (Go 1.26.0); Linux arm64 API cross-build PASS; Linux database mode 0600 regression PASS; frontend clean-lockfile install, unit 1/1 PASS, typecheck PASS, production build PASS on Node 24.21. Docker build/deploy smoke unverified (daemon permission denied). | 2026-10-11 |
-| Phase 2 interim | domain commit | Catalog/category domain CRUD, search, filters, favorites, pagination, URL validation, case-insensitive uniqueness, and ID tests pass. Authenticated API routes and UI remain pending. | 2026-10-11 |
+| Phase 2 interim | `74eb336` | `go test ./...` PASS; `go vet ./...` PASS; `go test -race ./...` PASS on Ubuntu WSL. Catalog/category domain CRUD, search, filters, favorites, pagination, URL validation, case-insensitive uniqueness, and ID tests pass. Authenticated API routes and UI remain pending. | 2026-10-11 |
+| Phase 3 | pending | Argon2id and bootstrap/session/RBAC/CSRF/Origin/audit HTTP tests PASS; `go test ./...` PASS; `go vet ./...` PASS; `go test -race ./...` PASS on Ubuntu WSL (Go 1.26.0). Management/catalog routes remain unregistered; only login, session, and logout endpoints exist. | 2026-10-11 |
 

@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/projecthub/projecthub/internal/auth"
 	"github.com/projecthub/projecthub/internal/config"
 	"github.com/projecthub/projecthub/internal/migrate"
 	"github.com/projecthub/projecthub/internal/store"
@@ -20,6 +21,14 @@ import (
 
 func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	if len(os.Args) > 1 && os.Args[1] == "bootstrap-admin" {
+		if err := bootstrapAdmin(os.Args[2:]); err != nil {
+			logger.Error("administrator bootstrap failed", "error", err)
+			os.Exit(1)
+		}
+		logger.Info("administrator account created")
+		return
+	}
 	cfg, err := config.Load()
 	if err != nil {
 		logger.Error("invalid configuration", "error", err)
@@ -80,5 +89,7 @@ func newHandler(db *sql.DB) http.Handler {
 		w.WriteHeader(http.StatusOK)
 		_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 	})
-	return mux
+	authRoutes := &authHTTP{service: auth.NewService(db), limiter: auth.NewLoginLimiter(5, 15*time.Minute), sourceLimiter: auth.NewLoginLimiter(20, 15*time.Minute), db: db}
+	authRoutes.register(mux)
+	return requestID(mux)
 }
