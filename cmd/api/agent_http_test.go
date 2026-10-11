@@ -69,6 +69,14 @@ func TestHostTargetsAndActionsRequireAuthAndUseAllowlistedAgentIdentity(t *testi
 	if err != nil {
 		t.Fatal(err)
 	}
+	operatorID := "66666666-6666-4666-8666-666666666666"
+	if _, err := db.Exec("INSERT INTO users(id,username,password_hash,role,disabled,created_at,updated_at) VALUES(?,?,?,'operator',0,1,1)", operatorID, "agent-operator", "unused"); err != nil {
+		t.Fatal(err)
+	}
+	operator, err := authService.NewSession(t.Context(), operatorID, "")
+	if err != nil {
+		t.Fatal(err)
+	}
 	createdHost := httptest.NewRecorder()
 	handler.ServeHTTP(createdHost, healthRequest(http.MethodPost, "/api/v1/hosts", `{"name":"local-agent","agent_id":"agent-local"}`, session))
 	if createdHost.Code != http.StatusCreated {
@@ -103,6 +111,13 @@ func TestHostTargetsAndActionsRequireAuthAndUseAllowlistedAgentIdentity(t *testi
 	handler.ServeHTTP(denied, viewerAction)
 	if denied.Code != http.StatusForbidden {
 		t.Fatalf("viewer action status=%d", denied.Code)
+	}
+	operatorDenied := httptest.NewRecorder()
+	operatorAction := healthRequest(http.MethodPost, "/api/v1/service-targets/"+target.ID+"/actions", `{"action":"restart"}`, operator)
+	operatorAction.Header.Set("Idempotency-Key", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
+	handler.ServeHTTP(operatorDenied, operatorAction)
+	if operatorDenied.Code != http.StatusForbidden {
+		t.Fatalf("operator action status=%d body=%s", operatorDenied.Code, operatorDenied.Body.String())
 	}
 	key := "99999999-9999-4999-8999-999999999999"
 	action := healthRequest(http.MethodPost, "/api/v1/service-targets/"+target.ID+"/actions", `{"action":"restart"}`, session)

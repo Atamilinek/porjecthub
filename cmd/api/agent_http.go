@@ -52,7 +52,7 @@ func (a *agentHTTP) register(mux *http.ServeMux) {
 	mux.Handle("POST /api/v1/service-targets", a.auth.require(rbac.PermissionManage, http.HandlerFunc(a.createTarget)))
 	mux.Handle("DELETE /api/v1/service-targets/{id}", a.auth.require(rbac.PermissionManage, http.HandlerFunc(a.deleteTarget)))
 	mux.Handle("GET /api/v1/service-targets/{id}/status", a.auth.require(rbac.PermissionRead, http.HandlerFunc(a.targetStatus)))
-	mux.Handle("POST /api/v1/service-targets/{id}/actions", a.auth.require(rbac.PermissionOperate, http.HandlerFunc(a.createAction)))
+	mux.Handle("POST /api/v1/service-targets/{id}/actions", a.auth.require(rbac.PermissionManage, http.HandlerFunc(a.createAction)))
 	mux.Handle("GET /api/v1/action-jobs", a.auth.require(rbac.PermissionRead, http.HandlerFunc(a.listJobs)))
 	mux.Handle("GET /api/v1/action-jobs/{id}", a.auth.require(rbac.PermissionRead, http.HandlerFunc(a.getJob)))
 }

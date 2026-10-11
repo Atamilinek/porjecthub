@@ -48,7 +48,7 @@ let eventSource: EventSource | null = null
 let pollTimer: ReturnType<typeof setInterval> | undefined
 const editor = reactive({ id: '', name: '', description: '', icon: '', category_id: '', links: [] as { label: string; url: string }[] })
 const isAdmin = computed(() => user.value?.role === 'admin')
-const canOperate = computed(() => user.value?.role === 'admin' || user.value?.role === 'operator')
+const canOperate = computed(() => user.value?.role === 'admin')
 const title = computed(() => favorites.value ? '我的收藏' : categories.value.find((item) => item.id === category.value)?.name || '所有项目')
 
 onMounted(async () => {

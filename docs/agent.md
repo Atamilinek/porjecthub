@@ -25,7 +25,7 @@ systemctl enable --now projecthub-agent.service
 systemctl status projecthub-agent.service
 ```
 
-Configure `.env` `AGENT_SOCKET_HOST=/run/projecthub-agent/agent.sock`, then start Compose with the overlay in [deployment.md](deployment.md). In Project Hub, an Admin registers the Agent ID and maps the exact policy target ID to a service/project. An Operator can submit only the actions allowed by RBAC and Agent policy. The Agent rechecks authorization on every request, serializes per target, uses timeouts and idempotency IDs, and verifies state by readback. Jobs interrupted by API restart fail safely and are not replayed automatically.
+Configure `.env` `AGENT_SOCKET_HOST=/run/projecthub-agent/agent.sock`, then start Compose with the overlay in [deployment.md](deployment.md). In Project Hub, an Admin registers the Agent ID and maps the exact policy target ID to a service/project. Only Admin accounts may submit service actions; the Agent independently rechecks its root-owned policy on every request, serializes per target, uses timeouts and idempotency IDs, and verifies state by readback. Jobs interrupted by API restart fail safely and are not replayed automatically.
 
 ## Safe changes and recovery
 

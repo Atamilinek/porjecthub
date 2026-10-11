@@ -1,0 +1,66 @@
+services:
+  api:
+    image: ${API_IMAGE:?Set API_IMAGE to the preloaded ARM64 image}
+    pull_policy: never
+    restart: unless-stopped
+    environment:
+      PROJECTHUB_LISTEN: 0.0.0.0:8080
+      PROJECTHUB_DB_PATH: /var/lib/projecthub/projecthub.db
+      PROJECTHUB_AGENT_SOCKET: /run/projecthub-agent/agent.sock
+      PROJECTHUB_PROBE_ALLOW_CIDRS: ${PROBE_ALLOW_CIDRS:-}
+    volumes:
+      - projecthub-data:/var/lib/projecthub
+      - ./backups:/backups
+      - type: bind
+        source: ${AGENT_RUNTIME_DIR_HOST:-/run/projecthub-agent}
+        target: /run/projecthub-agent
+        read_only: true
+    networks:
+      - private
+      - probes
+    expose:
+      - "8080"
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,noexec,nosuid,nodev
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 128
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
+  caddy:
+    image: ${CADDY_IMAGE:-caddy:2.10-alpine}
+    pull_policy: never
+    restart: unless-stopped
+    environment:
+      LAN_HOST: ${LAN_HOST:?Set LAN_HOST to the Orange Pi LAN address}
+    ports:
+      - "${LAN_BIND_IP:?Set LAN_BIND_IP to the Orange Pi LAN address}:443:443/tcp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks:
+      - private
+      - edge
+    depends_on:
+      api:
+        condition: service_healthy
+
+networks:
+  private:
+    internal: true
+  edge: {}
+  probes:
+    driver: bridge
+
+volumes:
+  projecthub-data:
+  caddy-data:
+  caddy-config:

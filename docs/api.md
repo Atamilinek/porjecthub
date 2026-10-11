@@ -21,7 +21,7 @@ The API is same-origin JSON under `/api/v1`. All routes except login and `/healt
 | GET/POST | `/service-targets` | Viewer+ / Admin mutation | List or bind host policy target |
 | DELETE | `/service-targets/{id}` | Admin | Delete target mapping when unused by checks/jobs |
 | GET | `/service-targets/{id}/status` | Viewer+ | Read actual status through Agent |
-| POST | `/service-targets/{id}/actions` | Operator+ | Queue start/stop/restart; requires `Idempotency-Key` |
+| POST | `/service-targets/{id}/actions` | Admin | Queue start/stop/restart; requires `Idempotency-Key` |
 | GET | `/action-jobs` | Viewer+ | List recent persisted jobs |
 | GET | `/action-jobs/{id}` | Viewer+ | Read persisted job status |
 | GET | `/admin/users` | Admin | List account metadata (never password hashes) |
@@ -32,6 +32,6 @@ The API is same-origin JSON under `/api/v1`. All routes except login and `/healt
 | GET | `/admin/settings` | Admin | Read effective process settings; changes are made through environment configuration |
 | GET | `/healthz` | Internal health probe | Database-backed liveness response |
 
-Roles are hierarchical: Viewer can read, Operator can read and request authorized actions, Admin can manage resources and accounts. The server checks role, CSRF, origin, target mapping, and Agent policy independently. Web visibility is not an authorization boundary.
+Roles are hierarchical: Viewer can read, Operator can read and use non-administrative operator features, and Admin can manage resources, accounts, and service actions. The server checks role, CSRF, origin, target mapping, and Agent policy independently. Web visibility is not an authorization boundary.
 
 `/projects` supports `q`, `category_id`, `favorites`, `sort`, `direction`, `limit`, and `offset`. Audit `q` searches actor username, action, event type, and outcome. Agent action bodies contain only a supported action; the target is selected by the path and must have an idempotency header. The API never accepts Docker IDs or systemd unit names in an action request.

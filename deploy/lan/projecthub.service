@@ -1,0 +1,22 @@
+[Unit]
+Description=Project Hub LAN deployment
+Requires=docker.service
+After=network-online.target docker.service projecthub-agent.service
+Wants=network-online.target projecthub-agent.service
+ConditionPathExists=/srv/data/projecthub/compose.yaml
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/srv/data/projecthub
+ExecStartPre=/usr/local/libexec/projecthub-wait-lan-ip
+ExecStartPre=/usr/bin/docker compose --project-name projecthub -f /srv/data/projecthub/compose.yaml config --quiet
+ExecStart=/usr/bin/docker compose --project-name projecthub -f /srv/data/projecthub/compose.yaml up -d --pull never
+ExecStop=/usr/bin/docker compose --project-name projecthub -f /srv/data/projecthub/compose.yaml stop --timeout 30
+TimeoutStartSec=0
+TimeoutStopSec=90
+Restart=on-failure
+RestartSec=15s
+
+[Install]
+WantedBy=multi-user.target

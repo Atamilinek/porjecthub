@@ -1,0 +1,33 @@
+{
+  "agent_id": "orangepizero3w-agent",
+  "targets": [
+    {
+      "id": "host-dnsmasq",
+      "kind": "systemd_unit",
+      "identity": "dnsmasq.service",
+      "actions": ["status"],
+      "protected": true
+    },
+    {
+      "id": "host-mihomo",
+      "kind": "systemd_unit",
+      "identity": "mihomo.service",
+      "actions": ["status"],
+      "protected": true
+    },
+    {
+      "id": "host-ssh",
+      "kind": "systemd_unit",
+      "identity": "ssh.service",
+      "actions": ["status"],
+      "protected": true
+    },
+    {
+      "id": "host-docker",
+      "kind": "systemd_unit",
+      "identity": "docker.service",
+      "actions": ["status"],
+      "protected": true
+    }
+  ]
+}

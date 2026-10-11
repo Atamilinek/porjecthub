@@ -60,6 +60,26 @@ describe('Project Hub application', () => {
     expect(wrapper.find('[aria-label="添加分类"]').exists()).toBe(false)
   })
 
+  it('hides service control buttons from an operator', async () => {
+    vi.mocked(fetch).mockImplementation(async (input) => {
+      const url = String(input)
+      if (url.endsWith('/session')) return response({ user: { id: 'u-3', username: 'operator', role: 'operator', disabled: false, createdAt: 1 }, csrfToken: 'csrf-operator' })
+      if (url.endsWith('/categories')) return response({ items: [], count: 0 })
+      if (url.includes('/projects')) return response({ items: [], count: 0 })
+      if (url.endsWith('/hosts')) return response({ items: [], count: 0 })
+      if (url.endsWith('/service-targets')) return response({ items: [{ id: 't-1', project_id: 'p-1', host_id: 'h-1', host_name: 'Pi', agent_id: 'agent-pi', agent_target_id: 'authorized-service', kind: 'docker_container', display_name: 'Service', state: 'running' }], count: 1 })
+      if (url.endsWith('/action-jobs')) return response({ items: [], count: 0 })
+      throw new Error(`Unexpected request ${url}`)
+    })
+    const wrapper = mount(App)
+    await flushPromises()
+    await wrapper.get('[aria-label="服务控制"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.text()).toContain('Service')
+    expect(wrapper.findAll('.service-card')).toHaveLength(1)
+    expect(wrapper.findAll('.service-card button').map((button) => button.text())).toEqual([])
+  })
+
   it('preserves all project links when an administrator edits a project', async () => {
     const project = {
       id: 'p-1', name: 'Compiler', description: 'Build service', icon: '', category_id: '', sort_order: 0, favorite: false, created_at: 1, updated_at: 1,

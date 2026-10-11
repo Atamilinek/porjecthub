@@ -15,6 +15,7 @@ internal/webapp/dist/*
 .env
 .env.*
 !.env.example
+deploy/lan/certs/
 data/
 /work/
 /test-results/

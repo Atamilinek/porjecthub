@@ -75,9 +75,9 @@ func main() {
 			logger.Error("policy contains systemd targets but --enable-systemd is unset")
 			os.Exit(2)
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		systemd, err = agent.NewSystemdBackend(ctx)
-		cancel()
+		// go-systemd binds this context to its long-lived D-Bus connection.
+		// The backend closes the connection during shutdown, so startup must not cancel it.
+		systemd, err = agent.NewSystemdBackend(context.Background())
 		if err != nil {
 			logger.Error("connect systemd D-Bus", "error", err)
 			os.Exit(1)
