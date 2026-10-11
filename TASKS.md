@@ -32,7 +32,7 @@ Tasks are checked only after implementation, relevant tests pass, and evidence i
 - [x] Prove tests use fakes and cannot reach a real Docker socket/systemd manager.
 
 ## Phase 6 — 部署
-- [x] Add multi-stage Dockerfile, Compose, Caddy HTTPS configuration, and `.env.example` (YAML syntax parsed; Compose-specific validation awaits Docker CLI).
+- [x] Add multi-stage Dockerfile, Compose, Caddy HTTPS configuration, and `.env.example` (`docker compose config --quiet` PASS on Orange Pi Zero 3 with `DOMAIN=localhost`).
 - [x] Add systemd Agent unit and secure Linux installation/allowlist instructions.
 - [x] Add amd64/arm64 build workflow and ARM64 validation procedure.
 - [x] Add data initialization, administrator bootstrap, persistent volume, upgrade/migration, and rollback instructions.
@@ -41,8 +41,9 @@ Tasks are checked only after implementation, relevant tests pass, and evidence i
 ## Phase 7 — 验收
 - [x] Complete API, migration, auth, permissions, SSRF, jobs, and persistence tests.
 - [x] Complete UI checks and Playwright E2E, including mobile layout and SSE reconnect.
-- [x] Run Go race tests, `go vet`, formatting, TypeScript check, frontend build, and Docker builds where tools are available (Docker CLI/daemon unavailable here; image build is not claimed).
-- [x] Run deployment smoke test and fault recovery against an isolated simulation (local binary + temporary SQLite; container deployment remains unverified).
+- [x] Run Go race tests, `go vet`, formatting, TypeScript check, and frontend build.
+- [ ] Build Docker images for supported architectures when tools are available (ARM64 image build is still unverified because Docker Hub timed out from the Orange Pi).
+- [x] Run deployment smoke test and fault recovery against an isolated simulation (`scripts/smoke-local.sh` PASS; native ARM64 API smoke on Orange Pi Zero 3 PASS with loopback and temporary SQLite; container deployment remains unverified).
 - [x] Record actual start/stop behavior only against an explicitly isolated mock target.
 - [x] Complete README and deployment/operator docs; record limitations, security boundaries, and residual risks.
 
@@ -59,4 +60,5 @@ Tasks are checked only after implementation, relevant tests pass, and evidence i
 | Phase 5 | `8190d9f` | Go full suite and race tests PASS; `go vet ./...` PASS; Linux amd64/arm64 API and Agent cross-builds PASS; Agent, job, and API integration tests use fake Docker/systemd/Agent backends. Vue unit 5/5, typecheck/build, Playwright Chromium E2E 4/4 PASS. No host Docker socket/systemd service was contacted. | 2026-10-11 |
 | Phase 6 | `9cd096f` | Backup/restore CLI tests PASS against temporary SQLite databases, including integrity, corrupt-source preservation, permissions, and stale WAL/SHM cleanup. Compose/CI YAML syntax parsed. Docker CLI/daemon unavailable, so Compose semantic validation and image build are unverified. | 2026-10-11 |
 | Phase 7 | `3e6ce1a` | `go test ./...`, `go test -race ./...`, `go vet ./...`, formatting, Linux amd64/arm64 API+Agent builds PASS; Vue unit 5/5, typecheck/build PASS; Playwright Chromium E2E 6/6 PASS including 390px mobile, user/audit/settings, Agent job, and dropped-SSE reconnection/polling. `scripts/smoke-local.sh` PASS with temporary DB: bootstrap, startup, healthz, embedded SPA, login, authenticated project mutation, graceful shutdown. Agent transition tests use fakes only. Docker CLI/daemon unavailable: Docker image build, Compose semantic validation, and container deployment smoke unverified. | 2026-10-11 |
+| Phase 7 ARM64 follow-up | pending | On `orangepi-zero3w` (Orange Pi Zero 3, Debian 13, aarch64), `DOMAIN=localhost docker compose config --quiet` PASS. Native ARM64 API binary smoke PASS: bootstrap, startup, healthz, embedded SPA, login, authenticated project mutation, graceful shutdown; used random loopback port and temporary SQLite only; no Docker containers or host services touched. ARM64 Docker image build attempted with isolated tag `projecthub-api:validation-20261011`, but failed before any build steps because the Pi timed out reaching `registry-1.docker.io` while resolving `alpine:3.22`; required base images were absent from cache. No image was created and no service was deployed. | 2026-10-11 |
 
