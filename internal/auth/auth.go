@@ -21,6 +21,8 @@ var (
 	ErrInvalidSession     = errors.New("invalid or expired session")
 	ErrBootstrapComplete  = errors.New("administrator bootstrap already completed")
 	ErrWeakPassword       = errors.New("password must contain 12 to 1024 bytes")
+	ErrLastAdministrator  = errors.New("cannot disable the last active administrator")
+	ErrInvalidRole        = errors.New("role is invalid")
 	ErrInvalidUsername    = errors.New("username must be 3 to 64 ASCII letters, digits, dots, underscores, or hyphens")
 	usernamePattern       = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._-]{2,63}$`)
 )
@@ -89,6 +91,114 @@ func (s *Service) BootstrapAdmin(ctx context.Context, username, password string)
 		return User{}, fmt.Errorf("commit bootstrap: %w", err)
 	}
 	return User{ID: id, Username: username, Role: rbac.RoleAdmin, CreatedAt: now}, nil
+}
+
+func (s *Service) ListUsers(ctx context.Context) ([]User, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT id,username,role,disabled,created_at FROM users ORDER BY username`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	users := make([]User, 0)
+	for rows.Next() {
+		var user User
+		var disabled int
+		if err = rows.Scan(&user.ID, &user.Username, &user.Role, &disabled, &user.CreatedAt); err != nil {
+			return nil, err
+		}
+		user.Disabled = disabled != 0
+		users = append(users, user)
+	}
+	return users, rows.Err()
+}
+
+func (s *Service) CreateUser(ctx context.Context, username, password string, role rbac.Role) (User, error) {
+	username = strings.ToLower(strings.TrimSpace(username))
+	if !usernamePattern.MatchString(username) {
+		return User{}, ErrInvalidUsername
+	}
+	if err := validatePassword(password); err != nil {
+		return User{}, err
+	}
+	if role != rbac.RoleViewer && role != rbac.RoleOperator && role != rbac.RoleAdmin {
+		return User{}, ErrInvalidRole
+	}
+	hash, err := hashPassword(password)
+	if err != nil {
+		return User{}, err
+	}
+	id, err := ids.NewUUID()
+	if err != nil {
+		return User{}, err
+	}
+	now := s.now().Unix()
+	if _, err = s.db.ExecContext(ctx, `INSERT INTO users(id,username,password_hash,role,disabled,created_at,updated_at) VALUES(?,?,?,?,0,?,?)`, id, username, hash, role, now, now); err != nil {
+		return User{}, fmt.Errorf("create user: %w", err)
+	}
+	return User{ID: id, Username: username, Role: role, CreatedAt: now}, nil
+}
+
+func (s *Service) SetUserDisabled(ctx context.Context, userID string, disabled bool) error {
+	value := 0
+	if disabled {
+		value = 1
+	}
+	query := `UPDATE users SET disabled=?,updated_at=? WHERE id=?`
+	if disabled {
+		query += ` AND (role!='admin' OR disabled=1 OR (SELECT count(*) FROM users WHERE role='admin' AND disabled=0)>1)`
+	}
+	result, err := s.db.ExecContext(ctx, query, value, s.now().Unix(), userID)
+	if err != nil {
+		return err
+	}
+	changed, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if changed == 0 {
+		var role rbac.Role
+		var current int
+		if err = s.db.QueryRowContext(ctx, `SELECT role,disabled FROM users WHERE id=?`, userID).Scan(&role, &current); err != nil {
+			return err
+		}
+		if disabled && current == 0 && role == rbac.RoleAdmin {
+			return ErrLastAdministrator
+		}
+	}
+	if disabled {
+		_, err = s.db.ExecContext(ctx, `DELETE FROM sessions WHERE user_id=?`, userID)
+	}
+	return err
+}
+
+func (s *Service) ResetUserPassword(ctx context.Context, userID, password string) error {
+	if err := validatePassword(password); err != nil {
+		return err
+	}
+	hash, err := hashPassword(password)
+	if err != nil {
+		return err
+	}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	result, err := tx.ExecContext(ctx, `UPDATE users SET password_hash=?,updated_at=? WHERE id=?`, hash, s.now().Unix(), userID)
+	if err != nil {
+		return err
+	}
+	changed, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if changed == 0 {
+		return sql.ErrNoRows
+	}
+	if _, err = tx.ExecContext(ctx, `DELETE FROM sessions WHERE user_id=?`, userID); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 func (s *Service) Authenticate(ctx context.Context, username, password string) (User, error) {

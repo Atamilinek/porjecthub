@@ -171,3 +171,53 @@ test('registers an Agent host, binds a policy target, and submits an idempotent 
   await expect.poll(() => actionCreated).toBe(true)
   await expect(page.getByText('restart · succeeded')).toBeVisible()
 })
+
+test('admin manages users and reads audit and effective runtime settings', async ({ page }) => {
+  const users = [{ id: 'u-admin', username: 'admin', role: 'admin', disabled: false, createdAt: 1 }]
+  await page.route('**/api/v1/**', async (route) => {
+    const request = route.request()
+    const path = new URL(request.url()).pathname
+    if (path.endsWith('/session')) await route.fulfill({ json: { user: { id: 'u-admin', username: 'admin', role: 'admin', disabled: false, createdAt: 1 }, csrfToken: 'csrf-e2e' } })
+    else if (path.endsWith('/categories')) await route.fulfill({ json: { items: [], count: 0 } })
+    else if (path.endsWith('/projects')) await route.fulfill({ json: { items: [], count: 0 } })
+    else if (path.endsWith('/admin/users') && request.method() === 'POST') {
+      expect(request.headers()['x-csrf-token']).toBe('csrf-e2e')
+      const body = request.postDataJSON()
+      users.push({ id: 'u-operator', username: body.username, role: body.role, disabled: false, createdAt: 2 })
+      await route.fulfill({ status: 201, json: users[1] })
+    } else if (path.endsWith('/admin/users')) await route.fulfill({ json: { items: users, count: users.length } })
+    else if (path.endsWith('/admin/audit')) await route.fulfill({ json: { items: [{ id: 'a-1', actor_id: 'u-admin', actor_username: 'admin', request_id: 'r-1', event_type: 'security', target_type: 'user', target_id: 'u-operator', action: 'user.create', outcome: 'success', detail: '', created_at: 2 }], count: 1, limit: 50, offset: 0 } })
+    else if (path.endsWith('/admin/settings')) await route.fulfill({ json: { agent_transport_configured: false, probe_allow_cidrs: [], default_probe_interval_seconds: 30, default_probe_timeout_seconds: 5, sample_retention_days: 30, session_lifetime_hours: 12, storage: 'SQLite WAL' } })
+    else await route.fulfill({ status: 404, body: 'not found' })
+  })
+  await page.goto('/')
+  await page.getByRole('button', { name: '管理中心' }).click()
+  await expect(page.getByText('SQLite WAL')).toBeVisible()
+  await expect(page.getByText('user.create · success')).toBeVisible()
+  await page.getByLabel('用户名').fill('operator.one')
+  await page.getByLabel('初始密码').fill('another-correct-horse')
+  await page.getByLabel('角色').selectOption('operator')
+  await page.getByRole('button', { name: '创建用户' }).click()
+  await expect(page.getByText('operator.one', { exact: true })).toBeVisible()
+})
+
+test('EventSource reconnects after a dropped stream and falls back to polling', async ({ page }) => {
+  let eventRequests = 0
+  await page.route('**/api/v1/**', async (route) => {
+    const request = route.request()
+    const path = new URL(request.url()).pathname
+    if (path.endsWith('/session')) await route.fulfill({ json: { user: { id: 'u-1', username: 'admin', role: 'admin', disabled: false, createdAt: 1 }, csrfToken: 'csrf-e2e' } })
+    else if (path.endsWith('/categories')) await route.fulfill({ json: { items: [], count: 0 } })
+    else if (path.endsWith('/projects')) await route.fulfill({ json: { items: [], count: 0 } })
+    else if (path.endsWith('/health-checks')) await route.fulfill({ json: { items: [], count: 0 } })
+    else if (path.endsWith('/events')) {
+      eventRequests++
+      if (eventRequests === 1) await route.fulfill({ status: 200, contentType: 'text/event-stream', body: 'id: 7\nevent: health.state\ndata: {"state":"healthy"}\n\n' })
+      else await route.fulfill({ status: 200, contentType: 'text/event-stream', body: ': reconnected\n\n' })
+    } else await route.fulfill({ status: 404, body: 'not found' })
+  })
+  await page.goto('/')
+  await page.getByRole('button', { name: '运行监控' }).click()
+  await expect.poll(() => eventRequests, { timeout: 10000 }).toBeGreaterThanOrEqual(2)
+  await expect(page.getByText('实时连接中断，使用 15 秒轮询')).toBeVisible()
+})

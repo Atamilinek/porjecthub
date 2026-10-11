@@ -7,7 +7,7 @@
 - A protected off-host backup destination and a password manager for administrator credentials.
 - For host control only: Linux systemd and the separately installed Agent described in [agent.md](agent.md).
 
-The API defaults to loopback for direct development use. Compose overrides it to `0.0.0.0:8080`, but attaches it only to an `internal: true` network shared with Caddy. The API publishes no host port. Caddy has a separate egress network to obtain/renew certificates. The API image does not include Docker CLI or mount the Docker Engine socket.
+The API defaults to loopback for direct development use. Compose overrides it to `0.0.0.0:8080`, attaches it to an `internal: true` network shared with Caddy, and gives it a separate outbound bridge for health probes. The API publishes no host port. Caddy has its own egress network to obtain/renew certificates. The API image does not include Docker CLI or mount the Docker Engine socket. Only the Caddy service has published ports; probe egress does not publish API ports.
 
 ## Start the application
 
@@ -34,7 +34,7 @@ docker compose run --rm --no-deps \
   api bootstrap-admin --username admin --password-file /run/secrets/admin-password
 ```
 
-The command creates/migrates the database and refuses to bootstrap a second administrator. It does not print or accept a default password. Remove the host secret file securely when done. Create additional users through the authenticated admin interface when available; do not reuse the bootstrap secret.
+The command creates/migrates the database and refuses to bootstrap a second administrator. It does not print or accept a default password. Remove the host secret file securely when done. Admins can create additional Viewer, Operator, or Admin accounts in the authenticated Management Center; never reuse the bootstrap secret.
 
 ## Upgrade and rollback
 

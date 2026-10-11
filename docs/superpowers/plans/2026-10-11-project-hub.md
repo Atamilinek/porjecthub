@@ -87,7 +87,7 @@
 - [x] Test component/API behavior and responsive/mobile views; add Playwright E2E for login, CRUD, permission-denied result, and error state.
 - [x] Run frontend typecheck/build/E2E when npm is available; otherwise record exact unverified commands.
 - [x] Embed built SPA assets in the Go API, keep Vite proxy same-origin for development, and return 404 for unknown API paths.
-- [ ] Add host, audit-browser, and settings screens when their backing APIs are implemented in monitoring/Agent/deployment tasks; do not show placeholder navigation.
+- [x] Add host, audit-browser, and settings screens with authenticated backing APIs; do not show placeholder navigation.
 - [x] Commit Phase 2/3 web integration and evidence.
 
 ### Task 5: Health monitoring, SSRF defenses, SSE
@@ -96,11 +96,11 @@
 
 **Interfaces:** Probe interface with bounded context; `State` enum; explicit configuration and admin-only mutations; SSE broker with event IDs and bounded subscriber queues.
 
-- [ ] Test HTTP/TCP timeouts, threshold transitions, recovery, retention cleanup, concurrency limits, and Agent-unreachable distinction.
-- [ ] Test SSRF rejection for loopback/private/link-local/metadata, DNS rebinding, redirects, credentials, unsupported schemes, and response-size bounds using injected resolver/dialer.
-- [ ] Implement scheduling with default 30-second interval and 5-second HTTP timeout; persist checks/samples and publish state changes.
-- [ ] Test SSE authorization, Last-Event-ID/reconnect, overflow behavior, and polling fallback contract.
-- [ ] Run monitoring/security tests and race tests; commit Phase 4 with evidence.
+- [x] Test HTTP/TCP timeouts, threshold transitions, recovery, retention cleanup, concurrency limits, and Agent-unreachable distinction.
+- [x] Test SSRF rejection for loopback/private/link-local/metadata, DNS rebinding, redirects, credentials, unsupported schemes, and response-size bounds using injected resolver/dialer.
+- [x] Implement scheduling with default 30-second interval and 5-second HTTP timeout; persist checks/samples and publish state changes.
+- [x] Test SSE authorization, Last-Event-ID/reconnect, overflow behavior, and polling fallback contract.
+- [x] Run monitoring/security tests and race tests; commit Phase 4 with evidence.
 
 ### Task 6: Restricted Agent and asynchronous jobs
 
@@ -108,22 +108,22 @@
 
 **Interfaces:** Typed `ActionRequest{RequestID, TargetID, Action}`; `Backend` status/transition interface; host allowlist maps target IDs to immutable identity, allowed actions, and protected flag. Unix socket protocol returns structured errors/results.
 
-- [ ] Test policy deny-by-default, protected targets, identity mismatch, missing target, unsupported actions, and real backend not being invoked on denial.
-- [ ] Test duplicate idempotency key, per-target lock, timeout, status readback, Agent offline, and Docker failure with fakes only.
-- [ ] Implement Docker SDK operations against existing container identities only; no create/exec/compose-up methods.
-- [ ] Implement allowlisted systemd unit operations using a narrow systemd API; no shell/systemctl arbitrary command path.
-- [ ] Test Unix socket mode/peer identity on Linux; make API-Agent client fail closed when socket unavailable.
-- [ ] Run Agent/API security suite and cross-compile Linux amd64/arm64; commit Phase 5 with evidence.
+- [x] Test policy deny-by-default, protected targets, identity mismatch, missing target, unsupported actions, and real backend not being invoked on denial.
+- [x] Test duplicate idempotency key, per-target lock, timeout, status readback, Agent offline, and Docker failure with fakes only.
+- [x] Implement Docker SDK operations against existing container identities only; no create/exec/compose-up methods.
+- [x] Implement allowlisted systemd unit operations using a narrow systemd API; no shell/systemctl arbitrary command path.
+- [x] Test Unix socket mode/peer identity on Linux; make API-Agent client fail closed when socket unavailable.
+- [x] Run Agent/API security suite and cross-compile Linux amd64/arm64; commit Phase 5 with evidence.
 
 ### Task 7: Deployment, operations, and acceptance
 
-**Files:** Dockerfile, `compose.yaml`, Caddyfile, `.env.example`, systemd unit, install scripts, `README.md`, `docs/deployment.md`, backup/restore/troubleshooting docs, CI release workflow.
+**Files:** Dockerfile, `compose.yaml`, Caddyfile, `.env.example`, systemd unit, Agent policy example, `README.md`, `docs/deployment.md`, backup/restore/troubleshooting docs, CI multi-architecture build verification.
 
 **Interfaces:** Container listens privately; Caddy public HTTPS entry; Agent installation uses dedicated account and root-managed allowlist. Admin bootstrap and backup commands are documented and repeatable.
 
-- [ ] Validate Compose configuration, environment handling, persistent volume, TLS hostname, and API network isolation.
-- [ ] Test backup/restore against a temporary SQLite database and verify migration/upgrade procedure.
-- [ ] Build linux/amd64 and linux/arm64 binaries/images; run isolated deployment smoke test when Docker is available.
-- [ ] Run final `gofmt`, `go test -race ./...`, `go vet ./...`, TypeScript checks, frontend build, API/E2E tests, and report unavailable checks without claiming success.
-- [ ] Complete security boundary/residual risk docs, update all seven Phase checkboxes/evidence, and commit Phase 6/7 results.
+- [x] Parse Compose/CI YAML and inspect environment handling, persistent volume, TLS hostname, and API network isolation. Compose CLI semantic validation is unverified because Docker CLI is unavailable.
+- [x] Test backup/restore against temporary SQLite databases and verify migration/upgrade procedure.
+- [x] Build linux/amd64 and linux/arm64 binaries; run isolated local API smoke test. Container deployment smoke remains unavailable without Docker.
+- [x] Run final `gofmt`, `go test -race ./...`, `go vet ./...`, TypeScript checks, frontend build, API/E2E tests, and report unavailable checks without claiming success.
+- [x] Complete security boundary/residual risk docs, update all seven Phase checkboxes/evidence, and commit Phase 6/7 results.
 

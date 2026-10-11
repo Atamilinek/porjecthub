@@ -1,4 +1,4 @@
-.PHONY: test test-race vet build-web test-web typecheck-web
+.PHONY: test test-race vet build-web test-web typecheck-web smoke-local
 
 test:
 	go test ./...
@@ -17,3 +17,8 @@ typecheck-web:
 
 build-web:
 	npm --prefix web run build
+	mkdir -p internal/webapp/dist
+	cp -R web/dist/. internal/webapp/dist/
+
+smoke-local:
+	bash scripts/smoke-local.sh

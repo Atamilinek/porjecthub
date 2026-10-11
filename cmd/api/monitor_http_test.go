@@ -124,11 +124,12 @@ func TestSSERequiresSessionSupportsReplayAndRejectsBadCursor(t *testing.T) {
 	stopCancel := time.AfterFunc(20*time.Millisecond, cancel)
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/events", nil).WithContext(ctx)
 	req.AddCookie(&http.Cookie{Name: sessionCookieName, Value: session.Token})
+	req.Header.Set("Last-Event-ID", "0")
 	response := httptest.NewRecorder()
 	handler.ServeHTTP(response, req)
 	stopCancel.Stop()
 	cancel()
-	if response.Code != http.StatusOK || response.Header().Get("Content-Type") != "text/event-stream" || !strings.Contains(response.Body.String(), "\"state\":\"healthy\"") {
+	if response.Code != http.StatusOK || response.Header().Get("Content-Type") != "text/event-stream" || !strings.Contains(response.Body.String(), "id: 1\n") || !strings.Contains(response.Body.String(), "\"state\":\"healthy\"") {
 		t.Fatalf("SSE response status=%d headers=%v body=%s", response.Code, response.Header(), response.Body.String())
 	}
 }

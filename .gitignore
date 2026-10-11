@@ -8,6 +8,8 @@ web/node_modules/
 web/dist/
 web/playwright-report/
 web/test-results/
+internal/webapp/dist/*
+!internal/webapp/dist/.gitkeep
 
 # Local secrets and databases
 .env
@@ -15,6 +17,7 @@ web/test-results/
 !.env.example
 data/
 /work/
+/test-results/
 *.db
 *.db-shm
 *.db-wal

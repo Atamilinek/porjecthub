@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
-import { APIError, api, type ActionJob, type Category, type HealthCheck, type HealthSample, type Host, type Project, type ProjectInput, type ServiceTarget, type Session } from './api'
+import { APIError, api, type ActionJob, type AuditEntry, type Category, type HealthCheck, type HealthSample, type Host, type ManagedUser, type Project, type ProjectInput, type RuntimeSettings, type ServiceTarget, type Session } from './api'
 
 const user = ref<Session['user'] | null>(null)
 const projects = ref<Project[]>([])
@@ -19,7 +19,7 @@ const editorOpen = ref(false)
 const detail = ref<Project | null>(null)
 const categoryOpen = ref(false)
 const categoryName = ref('')
-const view = ref<'projects' | 'monitor' | 'services'>('projects')
+const view = ref<'projects' | 'monitor' | 'services' | 'admin'>('projects')
 const healthChecks = ref<HealthCheck[]>([])
 const agentTargets = ref<ServiceTarget[]>([])
 const monitorOpen = ref(false)
@@ -37,6 +37,13 @@ const targetOpen = ref(false)
 const hostForm = reactive({ name: '', agent_id: '' })
 const targetForm = reactive({ project_id: '', host_id: '', agent_target_id: '', kind: 'docker_container' as ServiceTarget['kind'], display_name: '' })
 const actionBusy = ref('')
+const managedUsers = ref<ManagedUser[]>([])
+const auditEntries = ref<AuditEntry[]>([])
+const auditTotal = ref(0)
+const auditOffset = ref(0)
+const runtime = ref<RuntimeSettings | null>(null)
+const auditQuery = ref('')
+const newUser = reactive({ username: '', password: '', role: 'viewer' as ManagedUser['role'] })
 let eventSource: EventSource | null = null
 let pollTimer: ReturnType<typeof setInterval> | undefined
 const editor = reactive({ id: '', name: '', description: '', icon: '', category_id: '', links: [] as { label: string; url: string }[] })
@@ -54,7 +61,13 @@ onMounted(async () => {
   } finally { loading.value = false }
 })
 onUnmounted(closeMonitorUpdates)
-watch(view, (next) => { if (next !== 'projects' && user.value) { if (next === 'monitor') void loadMonitor(); else void loadServices(); startMonitorUpdates() } else closeMonitorUpdates() })
+watch(view, (next) => {
+  closeMonitorUpdates()
+  if (!user.value) return
+  if (next === 'monitor') { void loadMonitor(); startMonitorUpdates() }
+  else if (next === 'services') { void loadServices(); startMonitorUpdates() }
+  else if (next === 'admin') void loadAdmin()
+})
 watch(monitorKind, (kind) => { if (kind === 'agent' && monitorOpen.value) void loadAgentTargets() })
 watch([search, category, favorites, sort], () => { if (user.value) void loadProjects() })
 
@@ -88,6 +101,26 @@ async function loadServices() {
     hosts.value = h.items; serviceTargets.value = t.items; actionJobs.value = j.items
     await Promise.all(serviceTargets.value.map(async (target) => { try { target.state = (await api.serviceTargetStatus(target.id)).state ?? 'unknown' } catch { target.state = 'unknown' } }))
   } catch (e) { error.value = message(e) }
+}
+async function loadAdmin() {
+  try {
+    const query = new URLSearchParams({ q: auditQuery.value.trim(), limit: '50', offset: String(auditOffset.value) })
+    const [users, audit, settings] = await Promise.all([api.listAdminUsers(), api.listAudit(query), api.getAdminSettings()])
+    managedUsers.value = users.items; auditEntries.value = audit.items; auditTotal.value = audit.count; runtime.value = settings
+  } catch (e) { error.value = message(e) }
+}
+async function createUser() {
+  busy.value = true
+  try { await api.createAdminUser({ ...newUser }); Object.assign(newUser,{username:'',password:'',role:'viewer'}); await loadAdmin() }
+  catch (e) { error.value = message(e) } finally { busy.value = false }
+}
+async function toggleManagedUser(item: ManagedUser) {
+  try { await api.setAdminUserDisabled(item.id,!item.disabled); await loadAdmin() } catch (e) { error.value = message(e) }
+}
+async function resetManagedUserPassword(item: ManagedUser) {
+  const password = window.prompt(`为 ${item.username} 设置新密码（至少 12 个字符）`)
+  if (password === null) return
+  try { await api.resetAdminUserPassword(item.id,password); error.value = '密码已重置，该用户的现有会话已撤销。'; await loadAdmin() } catch (e) { error.value = message(e) }
 }
 async function addHost() {
   busy.value = true
@@ -235,6 +268,7 @@ function message(e: unknown) {
         <button class="nav-item" :class="{active:view==='projects'&&favorites}" @click="view='projects';favorites=!favorites;category=''"><span>☆</span>我的收藏</button>
         <button class="nav-item" :class="{active:view==='monitor'}" aria-label="运行监控" @click="view='monitor'"><span>◉</span>运行监控</button>
         <button class="nav-item" :class="{active:view==='services'}" aria-label="服务控制" @click="view='services'"><span>⏻</span>服务控制</button>
+        <button v-if="isAdmin" class="nav-item" :class="{active:view==='admin'}" aria-label="管理中心" @click="view='admin'"><span>⚙</span>管理中心</button>
       </nav>
       <div class="category-head"><span>分类</span><button v-if="isAdmin" class="icon-button" aria-label="添加分类" @click="categoryOpen=!categoryOpen">＋</button></div>
       <form v-if="categoryOpen" class="category-form" @submit.prevent="addCategory"><input v-model="categoryName" aria-label="分类名称" placeholder="新分类名称" required maxlength="80" /><button class="button small primary">添加</button></form>
@@ -244,7 +278,7 @@ function message(e: unknown) {
       <div class="sidebar-bottom"><span class="avatar">{{ user.username.slice(0,1).toUpperCase() }}</span><span class="user-info"><strong>{{ user.username }}</strong><small>{{ user.role }}</small></span><button class="icon-button signout" aria-label="退出登录" @click="logout">↗</button></div>
     </aside>
     <section class="main-area">
-      <header class="topbar"><div class="breadcrumb">Workspace <span>/</span> <strong>{{ view==='monitor'?'运行监控':view==='services'?'服务控制':title }}</strong></div><div class="top-actions"><label v-if="view==='projects'" class="search-box"><span>⌕</span><input v-model="search" type="search" placeholder="搜索项目…" aria-label="搜索项目" /></label><span class="role-chip">{{ user.role }}</span></div></header>
+      <header class="topbar"><div class="breadcrumb">Workspace <span>/</span> <strong>{{ view==='monitor'?'运行监控':view==='services'?'服务控制':view==='admin'?'管理中心':title }}</strong></div><div class="top-actions"><label v-if="view==='projects'" class="search-box"><span>⌕</span><input v-model="search" type="search" placeholder="搜索项目…" aria-label="搜索项目" /></label><span class="role-chip">{{ user.role }}</span></div></header>
       <main class="content">
         <div v-if="error" class="notice error" role="alert"><span>{{ error }}</span><button class="icon-button" aria-label="关闭提示" @click="error=''">×</button></div>
         <template v-if="view==='projects'">
@@ -268,7 +302,7 @@ function message(e: unknown) {
           <section v-else class="empty-state"><div class="empty-icon">◉</div><h2>还没有监控目标</h2><p>{{ isAdmin?'添加 HTTP、TCP 或 Agent 目标后，后台会按设定周期进行检测。':'请管理员为项目添加健康检查。' }}</p></section>
           <footer class="page-footer">Project Hub <span>·</span> 健康检查与状态历史</footer>
         </template>
-        <template v-else>
+        <template v-else-if="view==='services'">
           <div class="page-heading"><div><p class="eyebrow">AUTHORIZED SERVICES</p><h1>服务控制<span class="heading-count">{{ serviceTargets.length }}</span></h1><p class="page-subtitle">只有主机 Agent 策略明确授权的目标才能执行操作；映射本身不会授予宿主机权限。</p></div><div v-if="isAdmin" class="service-config-actions"><button class="button secondary" aria-label="添加主机" @click="hostOpen=true">＋ 添加主机</button><button class="button primary" aria-label="绑定服务目标" :disabled="!hosts.length||!projects.length" @click="targetOpen=true;targetForm.project_id=projects[0]?.id||'';targetForm.host_id=hosts[0]?.id||''">＋ 绑定目标</button></div></div>
           <div class="monitor-connection"><span class="connection-dot" :class="{online:eventConnected}"></span>{{ eventConnected?'实时事件已连接':'Agent 状态不可达时显示未知' }}</div>
           <section v-if="isAdmin" class="host-list"><h2>已登记主机</h2><article v-for="host in hosts" :key="host.id" class="host-row"><div><strong>{{ host.name }}</strong><small>Agent {{ host.agent_id }} · {{ host.last_seen_at?`最近连接 ${new Date(host.last_seen_at*1000).toLocaleString()}`:'尚未连接' }}</small></div><button class="icon-button" :aria-label="'删除主机 '+host.name" @click="removeHost(host)">×</button></article><p v-if="!hosts.length" class="host-empty">先登记主机 Agent ID，再绑定由主机管理员配置的策略目标。</p></section>
@@ -276,6 +310,17 @@ function message(e: unknown) {
           <section v-else class="empty-state"><div class="empty-icon">⏻</div><h2>还没有登记服务目标</h2><p>{{ isAdmin?'登记 Agent 主机并绑定其策略文件中已经授权的服务目标。':'请管理员登记由 Agent 策略授权的服务目标。' }}</p></section>
           <section v-if="actionJobs.length" class="job-list"><h2>最近操作</h2><article v-for="job in actionJobs.slice(0,10)" :key="job.id"><span>{{ serviceTargets.find(t=>t.id===job.target_id)?.display_name||job.target_id }}</span><strong>{{ job.action }} · {{ job.status }}</strong><small>{{ job.error_code||new Date(job.created_at*1000).toLocaleString() }}</small></article></section>
           <footer class="page-footer">Project Hub <span>·</span> 主机策略授权的服务控制</footer>
+        </template>
+        <template v-else>
+          <div class="page-heading"><div><p class="eyebrow">ADMINISTRATION</p><h1>管理中心</h1><p class="page-subtitle">用户账户、操作审计和当前运行配置。</p></div><button class="button secondary" @click="loadAdmin">刷新数据</button></div>
+          <section class="admin-section"><div class="section-heading"><div><h2>用户账户 <span class="heading-count">{{ managedUsers.length }}</span></h2><p>停用会撤销该用户的全部现有会话；重置密码也会撤销会话。</p></div></div>
+            <form class="admin-user-form" @submit.prevent="createUser"><label>用户名<input v-model="newUser.username" minlength="3" maxlength="64" pattern="[A-Za-z0-9][A-Za-z0-9._-]*" autocomplete="off" required /></label><label>初始密码<input v-model="newUser.password" type="password" minlength="12" maxlength="1024" autocomplete="new-password" required /></label><label>角色<select v-model="newUser.role"><option value="viewer">只读</option><option value="operator">操作员</option><option value="admin">管理员</option></select></label><button class="button primary" :disabled="busy">创建用户</button></form>
+            <div class="admin-user-list"><article v-for="item in managedUsers" :key="item.id" class="admin-user-row"><div><strong>{{ item.username }}</strong><small>{{ item.role }} · {{ item.disabled?'已停用':'启用中' }} · 创建于 {{ new Date(item.createdAt*1000).toLocaleDateString() }}</small></div><div class="monitor-actions"><button class="button secondary small" @click="resetManagedUserPassword(item)">重置密码</button><button class="button secondary small" :disabled="item.id===user?.id" @click="toggleManagedUser(item)">{{ item.disabled?'启用':'停用' }}</button></div></article><p v-if="!managedUsers.length" class="host-empty">暂无用户</p></div>
+          </section>
+          <section class="admin-section"><div class="section-heading"><div><h2>操作审计 <span class="heading-count">{{ auditTotal }}</span></h2><p>记录用户、资源和服务操作的操作者、结果与请求编号。</p></div></div><form class="audit-search" @submit.prevent="auditOffset=0;loadAdmin()"><input v-model="auditQuery" maxlength="100" aria-label="筛选审计记录" placeholder="按用户名、操作或结果筛选" /><button class="button secondary">筛选</button></form>
+            <div class="audit-list"><article v-for="entry in auditEntries" :key="entry.id" class="audit-row"><div><strong>{{ entry.action }} · {{ entry.outcome }}</strong><small>{{ entry.actor_username||'系统/已删除用户' }} · {{ entry.event_type }} · {{ new Date(entry.created_at*1000).toLocaleString() }}</small></div><code>{{ entry.target_type }} {{ entry.target_id }} · {{ entry.request_id }}</code></article><p v-if="!auditEntries.length" class="host-empty">暂无匹配的审计记录</p></div><div class="audit-pagination"><button class="button secondary small" :disabled="auditOffset===0" @click="auditOffset=Math.max(0,auditOffset-50);loadAdmin()">较新</button><span>{{ auditTotal?`${auditOffset+1}–${Math.min(auditOffset+auditEntries.length,auditTotal)} / ${auditTotal}`:'0 条记录' }}</span><button class="button secondary small" :disabled="auditOffset+50>=auditTotal" @click="auditOffset+=50;loadAdmin()">更早</button></div>
+          </section>
+          <section class="admin-section"><div class="section-heading"><div><h2>运行配置</h2><p>这些值来自当前进程和部署环境；修改部署变量后需重启 API。</p></div></div><div v-if="runtime" class="runtime-grid"><article><small>Agent 传输</small><strong>{{ runtime.agent_transport_configured?'已配置本地 Unix socket':'未配置' }}</strong></article><article><small>探测私网白名单</small><strong>{{ runtime.probe_allow_cidrs.length?runtime.probe_allow_cidrs.join(', '):'未开放私网探测' }}</strong></article><article><small>健康检查默认值</small><strong>每 {{ runtime.default_probe_interval_seconds }} 秒 · 超时 {{ runtime.default_probe_timeout_seconds }} 秒</strong></article><article><small>样本保留</small><strong>{{ runtime.sample_retention_days }} 天</strong></article><article><small>登录会话</small><strong>{{ runtime.session_lifetime_hours }} 小时</strong></article><article><small>数据库</small><strong>{{ runtime.storage }}</strong></article></div></section>
         </template>
       </main>
     </section>

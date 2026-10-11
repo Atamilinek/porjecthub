@@ -139,6 +139,7 @@ func newRuntime(db *sql.DB, allowedProbeCIDRs []netip.Prefix, agentClient agent.
 	monitorService := monitor.NewService(db, checker, 10)
 	(&monitorHTTP{auth: authRoutes, service: monitorService, broker: broker}).register(mux)
 	(&agentHTTP{auth: authRoutes, db: db, jobs: dispatcher}).register(mux)
+	(&adminHTTP{auth: authRoutes, users: authRoutes.service, db: db, settings: runtimeSettings(allowedProbeCIDRs, agentClient != nil)}).register(mux)
 	mux.Handle("/", webapp.Embedded())
 	return requestID(mux), monitor.NewScheduler(monitorService, broker, time.Second), dispatcher
 }

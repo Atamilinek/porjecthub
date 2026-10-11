@@ -39,12 +39,12 @@ Tasks are checked only after implementation, relevant tests pass, and evidence i
 - [x] Add tested backup/restore and troubleshooting documentation.
 
 ## Phase 7 — 验收
-- [ ] Complete API, migration, auth, permissions, SSRF, jobs, and persistence tests.
-- [ ] Complete UI checks and Playwright E2E, including mobile layout and SSE reconnect.
-- [ ] Run Go race tests, `go vet`, formatting, TypeScript check, frontend build, and Docker builds where tools are available.
-- [ ] Run deployment smoke test and fault recovery against an isolated simulation.
-- [ ] Record actual start/stop behavior only against an explicitly isolated mock target.
-- [ ] Complete README and deployment/operator docs; record limitations, security boundaries, and residual risks.
+- [x] Complete API, migration, auth, permissions, SSRF, jobs, and persistence tests.
+- [x] Complete UI checks and Playwright E2E, including mobile layout and SSE reconnect.
+- [x] Run Go race tests, `go vet`, formatting, TypeScript check, frontend build, and Docker builds where tools are available (Docker CLI/daemon unavailable here; image build is not claimed).
+- [x] Run deployment smoke test and fault recovery against an isolated simulation (local binary + temporary SQLite; container deployment remains unverified).
+- [x] Record actual start/stop behavior only against an explicitly isolated mock target.
+- [x] Complete README and deployment/operator docs; record limitations, security boundaries, and residual risks.
 
 ## Evidence log
 
@@ -57,5 +57,6 @@ Tasks are checked only after implementation, relevant tests pass, and evidence i
 | Phase 2/3 integration | `3efe5e0` | Authenticated project/category API CRUD, favorite/search filters, static SPA fallback, authorization/CSRF/API tests PASS; `go test ./...`, `go vet ./...`, and WSL `go test -race ./...` PASS; Vue unit 4/4, typecheck, production build, Playwright Chromium E2E 2/2 (390px layout, create/edit/delete/favorite and denied-save error) PASS. E2E uses a controlled API stub; backend handlers are separately exercised through SQLite-backed httptest integration. Docker build not run. | 2026-10-11 |
 | Phase 4 | `f8c82bf` | HTTP/TCP probe, DNS pinning/private-range rejection, thresholds, scheduler, retention, SSE authorization/replay, API RBAC/audit, and migration tests PASS; `go test ./...`, `go vet ./...`, WSL `go test -race ./...` PASS. Vue unit 5/5, typecheck, production build, Playwright Chromium E2E 3/3 including monitor creation PASS. Tests use fake resolvers/dialers and controlled browser API responses; no real host/container endpoints contacted. | 2026-10-11 |
 | Phase 5 | `8190d9f` | Go full suite and race tests PASS; `go vet ./...` PASS; Linux amd64/arm64 API and Agent cross-builds PASS; Agent, job, and API integration tests use fake Docker/systemd/Agent backends. Vue unit 5/5, typecheck/build, Playwright Chromium E2E 4/4 PASS. No host Docker socket/systemd service was contacted. | 2026-10-11 |
-| Phase 6 | pending commit | Backup/restore CLI tests PASS against temporary SQLite databases, including integrity, corrupt-source preservation, permissions, and stale WAL/SHM cleanup. Compose/CI YAML syntax parsed. Docker CLI/daemon unavailable, so Compose semantic validation, image build, and deployment smoke test are unverified. | 2026-10-11 |
+| Phase 6 | `9cd096f` | Backup/restore CLI tests PASS against temporary SQLite databases, including integrity, corrupt-source preservation, permissions, and stale WAL/SHM cleanup. Compose/CI YAML syntax parsed. Docker CLI/daemon unavailable, so Compose semantic validation and image build are unverified. | 2026-10-11 |
+| Phase 7 | pending commit | `go test ./...`, `go test -race ./...`, `go vet ./...`, formatting, Linux amd64/arm64 API+Agent builds PASS; Vue unit 5/5, typecheck/build PASS; Playwright Chromium E2E 6/6 PASS including 390px mobile, user/audit/settings, Agent job, and dropped-SSE reconnection/polling. `scripts/smoke-local.sh` PASS with temporary DB: bootstrap, startup, healthz, embedded SPA, login, authenticated project mutation, graceful shutdown. Agent transition tests use fakes only. Docker CLI/daemon unavailable: Docker image build, Compose semantic validation, and container deployment smoke unverified. | 2026-10-11 |
 

@@ -78,6 +78,9 @@ export interface HealthSample {
 export interface Host { id: string; name: string; agent_id: string; last_seen_at: number | null; created_at: number; updated_at: number }
 export interface ServiceTarget { id: string; project_id: string; host_id: string; host_name: string; agent_id: string; agent_target_id: string; kind: 'docker_container' | 'systemd_unit'; display_name: string; created_at: number; state?: 'running' | 'stopped' | 'unknown' }
 export interface ActionJob { id: string; request_id: string; actor_id: string; project_id: string; target_id: string; action: 'start' | 'stop' | 'restart'; status: 'queued' | 'running' | 'succeeded' | 'failed' | 'timed_out'; result: string; error_code: string; created_at: number }
+export interface ManagedUser { id: string; username: string; role: User['role']; disabled: boolean; createdAt: number }
+export interface AuditEntry { id: string; actor_id: string; actor_username: string; request_id: string; event_type: string; target_type: string; target_id: string; action: string; outcome: string; detail: string; created_at: number }
+export interface RuntimeSettings { agent_transport_configured: boolean; probe_allow_cidrs: string[]; default_probe_interval_seconds: number; default_probe_timeout_seconds: number; sample_retention_days: number; session_lifetime_hours: number; storage: string }
 
 let csrfToken = ''
 
@@ -168,4 +171,10 @@ export const api = {
   createAction(id: string, action: ActionJob['action'], idempotencyKey: string) { return request<ActionJob>(`/service-targets/${encodeURIComponent(id)}/actions`, { method: 'POST', headers: { 'Idempotency-Key': idempotencyKey }, body: JSON.stringify({ action }) }) },
   getActionJob(id: string) { return request<ActionJob>(`/action-jobs/${encodeURIComponent(id)}`) },
   listActionJobs() { return request<{ items: ActionJob[]; count: number }>('/action-jobs') },
+  listAdminUsers() { return request<{ items: ManagedUser[]; count: number }>('/admin/users') },
+  createAdminUser(input: { username: string; password: string; role: ManagedUser['role'] }) { return request<ManagedUser>('/admin/users', { method: 'POST', body: JSON.stringify(input) }) },
+  setAdminUserDisabled(id: string, disabled: boolean) { return request<void>(`/admin/users/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify({ disabled }) }) },
+  resetAdminUserPassword(id: string, password: string) { return request<void>(`/admin/users/${encodeURIComponent(id)}/password`, { method: 'PUT', body: JSON.stringify({ password }) }) },
+  listAudit(query: URLSearchParams) { return request<{ items: AuditEntry[]; count: number; limit: number; offset: number }>(`/admin/audit?${query.toString()}`) },
+  getAdminSettings() { return request<RuntimeSettings>('/admin/settings') },
 }
