@@ -31,6 +31,22 @@ The overlay volume keeps the database path writable; the restore command install
 
 The Agent policy is separate from the application database. Back up `/etc/projecthub/agent-policy.json` securely, preserve root ownership and mode 0600, and record the exact Agent binary version. Restore the policy only after reviewing every target identity and action. Never add a target based only on a display name.
 
+## NVMe and PCIe read-only snapshot
+
+On the Orange Pi, run the installed diagnostic manually:
+
+```sh
+sudo /usr/local/bin/projecthub-nvme-health-check
+```
+
+It prints one JSON object with kernel, controller model/firmware, SMART status, temperature, critical warning, media-error and error-log counters, PCIe endpoint/root-port speed and width, and the Root Port link state. The SSD serial number is intentionally omitted. It invokes `smartctl` for read-only health data (or `nvme-cli` if `smartctl` is unavailable) and reads PCI sysfs/`lspci`; it does not rescan PCIe, change link speed, or write to the drive. Missing tools or devices appear as unavailable fields. To retain an operator-managed snapshot, redirect stdout to a protected file under `/srv/data`; no scheduled job is installed:
+
+```sh
+sudo /usr/local/bin/projecthub-nvme-health-check | sudo tee -a /srv/data/projecthub/backups/nvme-health.jsonl >/dev/null
+```
+
+Treat SMART error-log counters as diagnostic counters, not automatically as media errors. Compare snapshots and kernel logs over time; a single passing snapshot does not establish cold-boot reliability.
+
 ## Troubleshooting
 
 | Symptom | Checks |
