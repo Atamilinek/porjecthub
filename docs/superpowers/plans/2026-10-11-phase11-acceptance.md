@@ -35,7 +35,7 @@
 - [x] Record Compose projects, container ownership/status, host ports, networks, volumes, database path, systemd ordering, certificate SAN/fingerprint, anonymous API denials, backup integrity, live SMART/link status, and validation-stack cleanup proposal.
 - [x] Keep phone trust, router reservation, real admin login with the human-held credential, and any resource removal pending manual action.
 - [x] Validate production Compose configuration read-only and probe HTTPS/API exposure from the host and LAN workstation.
-- [ ] Commit the records and tested documentation.
+- [x] Commit the records and tested documentation as `2eb32af`.
 
 ### Task 2: Read-only NVMe health diagnostic
 
@@ -52,4 +52,4 @@
 
 - [x] Run relevant Go and frontend suites, the new Python tests, and whitespace/config checks. Linux filesystem copies passed the Go and frontend suites; Python fixtures passed; Compose validation and diff whitespace checks passed.
 - [x] Mark only verified criteria complete; leave phone/router, actual administrator credential login, long-term PCIe reliability, and validation resource cleanup open as applicable.
-- [ ] Commit the Phase 11 deliverables with actual test results.
+- [x] Commit the Phase 11 deliverables with actual test results as `2eb32af`.
