@@ -13,6 +13,21 @@ sha256sum "backups/projecthub-$stamp.db" > "backups/projecthub-$stamp.db.sha256"
 
 Copy backups off-host, encrypt them at rest, and define/verify retention appropriate to your organization. Backing up only to the same Docker volume or host is not disaster recovery. A backup is not verified until it has passed a restore drill.
 
+The Orange Pi currently keeps online backup files on `/srv/data`; there is no automated off-host replication configured. For an off-host copy, use a separate encrypted workstation/NAS with SSH access and sufficient free space. From that destination, stream the protected files through the existing Docker exec access (the host backup directory itself is not world-readable):
+
+```sh
+ssh -T orangepi-zero3w \
+  "docker exec projecthub-api-1 cat /backups/projecthub-YYYYMMDDTHHMMSSZ.db" \
+  > /path/on/encrypted-storage/projecthub-YYYYMMDDTHHMMSSZ.db
+ssh -T orangepi-zero3w \
+  "docker exec projecthub-api-1 cat /backups/projecthub-YYYYMMDDTHHMMSSZ.db.sha256" \
+  > /path/on/encrypted-storage/projecthub-YYYYMMDDTHHMMSSZ.db.sha256
+cd /path/on/encrypted-storage
+sha256sum -c projecthub-YYYYMMDDTHHMMSSZ.db.sha256
+```
+
+Check available space and encryption on the destination before copying. Retain the copy on encrypted storage with a separately protected recovery key. Do not copy the Caddy private CA volume as part of the database backup. Keep the original host backup until the off-host checksum and restore drill have passed.
+
 ## Restore
 
 Restore replaces the live database atomically after staging it in the same directory, applying available migrations to the staged copy, and running SQLite `integrity_check`. It refuses the same source and destination. **Stop the API first** so no process can write during replacement. The command intentionally does not stop services itself.
@@ -26,6 +41,8 @@ docker compose logs --tail=100 api
 ```
 
 The overlay volume keeps the database path writable; the restore command installs a mode-0600 database. Preserve the failed database separately before attempting recovery if the restore command reports an error. Test upgrades/restores on a copy before production changes.
+
+For a production-safe restore rehearsal, use a current backup as a read-only bind mount in a one-off API container with `--network none` and `PROJECTHUB_DB_PATH` on a `--tmpfs` mount. The container should be removed after verification; never mount the production database volume into the rehearsal container. The Phase 12 acceptance record documents the exact isolated run and result.
 
 ## Agent policy backup
 

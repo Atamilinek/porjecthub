@@ -12,4 +12,4 @@ Project Hub is a self-hosted project catalog, health monitor, and explicitly aut
 
 The API container has no Docker socket, runs without Linux capabilities, and is reachable only through Caddy's private network. Agent installation is separate and opt-in. Admins can manage accounts, review audit events, and inspect effective runtime settings. See the [API reference](docs/api.md), [operations](docs/operations.md), [Agent security](docs/agent.md), and [the delivery checklist](TASKS.md).
 
-For a host-side isolated startup/login/CRUD smoke test with a temporary database, run `make smoke-local` from Linux with Go, Node 24, npm, curl, and Python 3 installed. The script binds a loopback port and never connects to Docker or systemd.
+For a host-side isolated startup/login/CRUD smoke test with a temporary database, run `make smoke-local` from Linux with Go, Node.js 24.21.0 (see `.nvmrc`), npm 11.19.0, curl, and Python 3 installed. The script binds a loopback port and never connects to Docker or systemd.
