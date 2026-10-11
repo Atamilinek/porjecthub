@@ -73,6 +73,7 @@ All management routes require authenticated sessions, CSRF protection, and same-
 
 - **Unit waits/fails during boot:** it waits up to 180 seconds for the configured LAN address before Compose starts, then systemd retries after failure. Check `journalctl -u projecthub -b` and Docker/network status. Confirm the reserved address exists.
 - **Docker or Project Hub stays down after boot:** check `findmnt /srv/data`, `lsblk -f`, `systemctl status srv-data.mount docker projecthub`, and the Docker unit drop-ins. If Docker's data root is on a separate filesystem, restore that exact device/mount first; do not create an empty `/srv/data/docker` as a fallback, since that can hide the original data and prevent a safe start.
+- **Apparent multi-minute boot gap:** compare `journalctl -b -k -o short-monotonic` with `systemd-analyze critical-chain` and chrony logs; NTP can step wall time after boot. If the expected NVMe UUID is absent and PCIe reports link-training errors, keep Docker's data-mount dependency intact and inspect the device/connection before trying a rescan or changing boot timeouts.
 - **Port bind failure:** use `ss -ltnp 'sport = :443'`; change the Phase 9 binding only after reviewing the conflicting service. Do not stop an unrelated listener.
 - **Agent unavailable:** check `systemctl status projecthub-agent`, `journalctl -u projecthub-agent`, socket owner/mode, and the root-owned policy file.
 - **Certificate warning:** install the exported public root certificate and verify its fingerprint; never bypass the browser warning.

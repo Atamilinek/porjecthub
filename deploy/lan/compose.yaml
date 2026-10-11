@@ -30,7 +30,8 @@ services:
     pids_limit: 128
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
-      interval: 30s
+      start_period: 5s
+      interval: 5s
       timeout: 3s
       retries: 3
 
