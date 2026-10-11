@@ -9,9 +9,9 @@ Tasks are checked only after implementation, relevant tests pass, and evidence i
 - [x] Add baseline CI for Go and frontend checks.
 
 ## Phase 2 — 项目导航
-- [ ] Implement project CRUD, project links, category CRUD, preferences, and validated URL schemes.
-- [ ] Implement real project listing, cards, search/filter/sort/favorites, details, and responsive layout.
-- [ ] Implement add/edit flows and project navigation.
+- [x] Implement project CRUD, project links, category CRUD, preferences, and validated URL schemes.
+- [x] Implement real project listing, cards, search/filter/sort/favorites, details, and responsive layout.
+- [x] Implement add/edit flows and project navigation.
 
 ## Phase 3 — 认证安全
 - [x] Implement Argon2id login, one-time administrator bootstrap, secure sessions, logout, expiration, and login throttling.
@@ -53,5 +53,6 @@ Tasks are checked only after implementation, relevant tests pass, and evidence i
 | Planning | `ca45b2e` | Workspace inspected; no pre-existing files, Git repository, or `.codegraph/` found. Architecture/spec/plan committed. | 2026-10-11 |
 | Phase 1 | `c491168` | `go test ./...` PASS; `go vet ./...` PASS; `go test -race ./...` PASS on Ubuntu WSL (Go 1.26.0); Linux arm64 API cross-build PASS; Linux database mode 0600 regression PASS; frontend clean-lockfile install, unit 1/1 PASS, typecheck PASS, production build PASS on Node 24.21. Docker build/deploy smoke unverified (daemon permission denied). | 2026-10-11 |
 | Phase 2 interim | `74eb336` | `go test ./...` PASS; `go vet ./...` PASS; `go test -race ./...` PASS on Ubuntu WSL. Catalog/category domain CRUD, search, filters, favorites, pagination, URL validation, case-insensitive uniqueness, and ID tests pass. Authenticated API routes and UI remain pending. | 2026-10-11 |
-| Phase 3 | pending | Argon2id and bootstrap/session/RBAC/CSRF/Origin/audit HTTP tests PASS; `go test ./...` PASS; `go vet ./...` PASS; `go test -race ./...` PASS on Ubuntu WSL (Go 1.26.0). Management/catalog routes remain unregistered; only login, session, and logout endpoints exist. | 2026-10-11 |
+| Phase 3 | `e976945` | Argon2id and bootstrap/session/RBAC/CSRF/Origin/audit HTTP tests PASS; `go test ./...` PASS; `go vet ./...` PASS; `go test -race ./...` PASS on Ubuntu WSL (Go 1.26.0). At that commit, only login/session/logout handlers were registered; catalog routes were added under auth/RBAC/CSRF in the Phase 2/3 integration below. | 2026-10-11 |
+| Phase 2/3 integration | pending | Authenticated project/category API CRUD, favorite/search filters, static SPA fallback, authorization/CSRF/API tests PASS; Vue unit 4/4, typecheck, production build, Playwright Chromium E2E 2/2 (including 390px layout and denied-save error) PASS; Go full/race checks PASS. E2E uses a controlled API stub; backend handlers are separately exercised through SQLite-backed httptest integration. | 2026-10-11 |
 

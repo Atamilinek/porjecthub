@@ -25,8 +25,8 @@ func TestManagementRoutesRemainUnavailableUntilAuthenticationIsInstalled(t *test
 	db := testDatabase(t)
 	response := httptest.NewRecorder()
 	newHandler(db).ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/v1/projects", nil))
-	if response.Code != http.StatusNotFound {
-		t.Fatalf("GET /api/v1/projects status = %d, want %d before auth middleware exists", response.Code, http.StatusNotFound)
+	if response.Code != http.StatusUnauthorized {
+		t.Fatalf("anonymous GET /api/v1/projects status = %d, want %d", response.Code, http.StatusUnauthorized)
 	}
 }
 

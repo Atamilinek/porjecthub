@@ -78,14 +78,16 @@
 
 ### Task 4: Web application and real API integration
 
-**Files:** `web/` Vite/Vue app, pages/components/stores/router/API client, Go static embed/serving configuration, browser tests.
+**Files:** `web/` Vite/Vue app, typed API client, Go static embed/serving configuration, browser tests, and the authenticated catalog handlers that Task 3 gates before activation.
 
 **Interfaces:** Typed API client consumes `/api/v1`; routes for login, overview, project detail/editor, categories, hosts, audit, and settings. Role-aware UI is usability only; backend remains authoritative.
 
-- [ ] Implement project overview/detail/editor/categories with actual API data, loading/error/empty states, filters, sorting, and favorites.
-- [ ] Implement login and administrative navigation only after authenticated server integration.
-- [ ] Test component/API behavior and responsive/mobile views; add Playwright E2E for login, CRUD, permission-denied result, and error state.
-- [ ] Run frontend typecheck/build/E2E when npm is available; otherwise record exact unverified commands.
+- [x] Implement project/category CRUD APIs and project overview/detail/editor/categories with real API data, loading/error/empty states, filters, sorting, and favorites.
+- [x] Implement login and role-aware administrative controls only after authenticated server integration.
+- [x] Test component/API behavior and responsive/mobile views; add Playwright E2E for login, CRUD, permission-denied result, and error state.
+- [x] Run frontend typecheck/build/E2E when npm is available; otherwise record exact unverified commands.
+- [x] Embed built SPA assets in the Go API, keep Vite proxy same-origin for development, and return 404 for unknown API paths.
+- [ ] Add host, audit-browser, and settings screens when their backing APIs are implemented in monitoring/Agent/deployment tasks; do not show placeholder navigation.
 - [ ] Commit Phase 2/3 web integration and evidence.
 
 ### Task 5: Health monitoring, SSRF defenses, SSE

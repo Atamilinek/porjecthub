@@ -13,9 +13,12 @@ import (
 	"time"
 
 	"github.com/projecthub/projecthub/internal/auth"
+	"github.com/projecthub/projecthub/internal/categories"
 	"github.com/projecthub/projecthub/internal/config"
 	"github.com/projecthub/projecthub/internal/migrate"
+	"github.com/projecthub/projecthub/internal/projects"
 	"github.com/projecthub/projecthub/internal/store"
+	"github.com/projecthub/projecthub/internal/webapp"
 	"github.com/projecthub/projecthub/migrations"
 )
 
@@ -91,5 +94,7 @@ func newHandler(db *sql.DB) http.Handler {
 	})
 	authRoutes := &authHTTP{service: auth.NewService(db), limiter: auth.NewLoginLimiter(5, 15*time.Minute), sourceLimiter: auth.NewLoginLimiter(20, 15*time.Minute), db: db}
 	authRoutes.register(mux)
+	(&catalogHTTP{auth: authRoutes, projects: projects.NewService(db), categories: categories.NewService(db)}).register(mux)
+	mux.Handle("/", webapp.Embedded())
 	return requestID(mux)
 }
