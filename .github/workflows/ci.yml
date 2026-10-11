@@ -20,7 +20,10 @@ jobs:
       - run: test -z "$(gofmt -l $(git ls-files '*.go'))"
       - run: go test -race ./...
       - run: go vet ./...
+      - run: GOOS=linux GOARCH=amd64 go build ./cmd/api
+      - run: GOOS=linux GOARCH=amd64 go build ./cmd/agent
       - run: GOOS=linux GOARCH=arm64 go build ./cmd/api
+      - run: GOOS=linux GOARCH=arm64 go build ./cmd/agent
 
   web:
     runs-on: ubuntu-latest
@@ -39,3 +42,17 @@ jobs:
       - run: npm run test:unit
       - run: npm run typecheck
       - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+
+  images:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: false

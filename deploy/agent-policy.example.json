@@ -1,0 +1,12 @@
+{
+  "agent_id": "host-production-01",
+  "targets": [
+    {
+      "id": "example-worker",
+      "kind": "systemd_unit",
+      "identity": "example-worker.service",
+      "actions": ["status", "start", "stop", "restart"],
+      "protected": false
+    }
+  ]
+}

@@ -37,6 +37,13 @@ func main() {
 		logger.Info("administrator account created")
 		return
 	}
+	if len(os.Args) > 1 && (os.Args[1] == "backup" || os.Args[1] == "restore") {
+		if err := runDatabaseCommand(os.Args[1], os.Args[2:]); err != nil {
+			logger.Error("database command failed", "command", os.Args[1], "error", err)
+			os.Exit(1)
+		}
+		return
+	}
 	cfg, err := config.Load()
 	if err != nil {
 		logger.Error("invalid configuration", "error", err)

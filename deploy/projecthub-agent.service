@@ -1,0 +1,30 @@
+[Unit]
+Description=Project Hub restricted host Agent
+After=local-fs.target dbus.service
+ConditionPathExists=/etc/projecthub/agent-policy.json
+
+[Service]
+Type=simple
+User=root
+Group=root
+RuntimeDirectory=projecthub-agent
+RuntimeDirectoryMode=0750
+ExecStart=/usr/local/bin/projecthub-agent --policy /etc/projecthub/agent-policy.json --socket /run/projecthub-agent/agent.sock --api-gid 10001 --socket-gid 10001 --docker-endpoint unix:///var/run/docker.sock --enable-systemd
+Restart=on-failure
+RestartSec=3s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+LockPersonality=true
+RestrictAddressFamilies=AF_UNIX
+ReadOnlyPaths=/etc/projecthub/agent-policy.json
+CapabilityBoundingSet=
+AmbientCapabilities=
+UMask=0027
+
+[Install]
+WantedBy=multi-user.target

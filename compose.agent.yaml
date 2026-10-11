@@ -1,0 +1,7 @@
+services:
+  api:
+    volumes:
+      - type: bind
+        source: ${AGENT_SOCKET_HOST:?Set AGENT_SOCKET_HOST to the host Agent socket}
+        target: /run/projecthub-agent/agent.sock
+        read_only: true
