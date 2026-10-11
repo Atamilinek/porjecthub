@@ -88,7 +88,7 @@
 - [x] Run frontend typecheck/build/E2E when npm is available; otherwise record exact unverified commands.
 - [x] Embed built SPA assets in the Go API, keep Vite proxy same-origin for development, and return 404 for unknown API paths.
 - [ ] Add host, audit-browser, and settings screens when their backing APIs are implemented in monitoring/Agent/deployment tasks; do not show placeholder navigation.
-- [ ] Commit Phase 2/3 web integration and evidence.
+- [x] Commit Phase 2/3 web integration and evidence.
 
 ### Task 5: Health monitoring, SSRF defenses, SSE
 
