@@ -16,12 +16,29 @@ import (
 	"time"
 )
 
+// privateTempDir returns a per-test temporary directory with mode 0700.
+//
+// t.TempDir() creates its numbered subdirectory with os.Mkdir(dir, 0o777), so
+// its effective mode follows the process umask: 0755 under the 0o022 umask used
+// in CI, but 0775 under the default user umask 0o002 on Debian and Ubuntu. The
+// directory checks in listenSocket and LoadRootPolicy reject group-writable
+// directories, so tests that exercise them must pin the mode instead of
+// inheriting it from the environment.
+func privateTempDir(t *testing.T) string {
+	t.Helper()
+	dir := t.TempDir()
+	if err := os.Chmod(dir, 0o700); err != nil {
+		t.Fatalf("chmod temporary directory: %v", err)
+	}
+	return dir
+}
+
 func TestUnixSocketRequiresPeerAndRunsOnlyAuthorizedRequest(t *testing.T) {
 	target := Target{ID: "app", Kind: KindDocker, Identity: strings.Repeat("b", 64), Actions: []Action{ActionStatus}}
 	backend := &fakeBackend{state: StateRunning}
 	service := NewService(NewPolicy("agent-1", []Target{target}), backend, time.Second)
 	uid := uint32(os.Geteuid())
-	path := filepath.Join(t.TempDir(), "agent.sock")
+	path := filepath.Join(privateTempDir(t), "agent.sock")
 	listener, err := listenSocket(path, -1, false)
 	if err != nil {
 		t.Fatal(err)
@@ -80,7 +97,7 @@ func TestUnixSocketRequiresPeerAndRunsOnlyAuthorizedRequest(t *testing.T) {
 }
 
 func TestListenSocketRefusesRegularFileAndUnsafePolicyMetadata(t *testing.T) {
-	dir := t.TempDir()
+	dir := privateTempDir(t)
 	path := filepath.Join(dir, "agent.sock")
 	if err := os.WriteFile(path, []byte("keep"), 0600); err != nil {
 		t.Fatal(err)
@@ -147,7 +164,7 @@ func TestSocketHandlerRejectsMissingPeerCredentialsBeforeDecode(t *testing.T) {
 }
 
 func TestLoadRootPolicyRejectsUntrustedDirectory(t *testing.T) {
-	dir := t.TempDir()
+	dir := privateTempDir(t)
 	path := filepath.Join(dir, "policy.json")
 	if err := os.WriteFile(path, []byte(`{"agent_id":"agent-1","targets":[]}`), 0600); err != nil {
 		t.Fatal(err)
@@ -161,7 +178,7 @@ func TestLoadRootPolicyAcceptsRootOwnedPolicy(t *testing.T) {
 	if os.Geteuid() != 0 {
 		t.Skip("requires a root-owned temporary policy")
 	}
-	dir := t.TempDir()
+	dir := privateTempDir(t)
 	path := filepath.Join(dir, "policy.json")
 	if err := os.WriteFile(path, []byte(`{"agent_id":"agent-1","targets":[]}`), 0600); err != nil {
 		t.Fatal(err)
@@ -189,7 +206,7 @@ func TestListenSocketAcceptsRootOwnedDirectory(t *testing.T) {
 	if os.Geteuid() != 0 {
 		t.Skip("requires a root-owned socket directory")
 	}
-	path := filepath.Join(t.TempDir(), "agent.sock")
+	path := filepath.Join(privateTempDir(t), "agent.sock")
 	listener, err := ListenSocket(path, -1)
 	if err != nil {
 		t.Fatalf("root-owned socket directory rejected: %v", err)
