@@ -18,17 +18,26 @@ import (
 
 // privateTempDir returns a per-test temporary directory with mode 0700.
 //
-// t.TempDir() creates its numbered subdirectory with os.Mkdir(dir, 0o777), so
-// its effective mode follows the process umask: 0755 under the 0o022 umask used
-// in CI, but 0775 under the default user umask 0o002 on Debian and Ubuntu. The
-// directory checks in listenSocket and LoadRootPolicy reject group-writable
-// directories, so tests that exercise them must pin the mode instead of
-// inheriting it from the environment.
+// The directory returned by t.TempDir() inherits the process umask, so its mode
+// is 0755 under the 0o022 umask used in CI but 0775 under the default user umask
+// 0o002 on Debian and Ubuntu. The directory checks in listenSocket and
+// LoadRootPolicy reject group-writable directories, so tests that exercise them
+// pin the mode explicitly instead of depending on the environment.
+//
+// The resulting mode is verified rather than assumed: a filesystem that cannot
+// express POSIX modes would otherwise leave the test silently asserting nothing.
 func privateTempDir(t *testing.T) string {
 	t.Helper()
 	dir := t.TempDir()
 	if err := os.Chmod(dir, 0o700); err != nil {
-		t.Fatalf("chmod temporary directory: %v", err)
+		t.Fatalf("chmod temporary directory %s: %v", dir, err)
+	}
+	info, err := os.Stat(dir)
+	if err != nil {
+		t.Fatalf("stat temporary directory %s: %v", dir, err)
+	}
+	if mode := info.Mode().Perm(); mode != 0o700 {
+		t.Fatalf("temporary directory %s mode = %#o, want 0700", dir, mode)
 	}
 	return dir
 }
