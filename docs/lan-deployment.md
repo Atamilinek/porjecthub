@@ -1,5 +1,7 @@
 # Orange Pi LAN deployment
 
+> **Public version note**: host-specific identifiers in this document have been replaced with placeholders (`<LAN_IP>`、`<LOCAL_CA_SHA256>`). Acceptance dates, measurements, commands, and pass/fail results are unchanged. Substitute your own environment values when reproducing locally.
+
 This profile runs the preloaded ARM64 API image behind Caddy with a private local CA. It publishes only TCP 443 on the explicitly configured LAN IPv4 address. The API is not published to the host. The SQLite database, Caddy CA, and Caddy configuration use named Docker volumes; Compose containers use `unless-stopped`, and systemd brings the project up after Docker and the network are available.
 
 ## Before installation
@@ -16,8 +18,8 @@ Create `/srv/data/projecthub`, copy `compose.yaml` and `Caddyfile` from `deploy/
 ```dotenv
 API_IMAGE=projecthub-api:phase9-arm64
 CADDY_IMAGE=caddy:2.10-alpine
-LAN_BIND_IP=192.168.1.32
-LAN_HOST=192.168.1.32
+LAN_BIND_IP=<LAN_IP>
+LAN_HOST=<LAN_IP>
 AGENT_RUNTIME_DIR_HOST=/run/projecthub-agent
 PROBE_ALLOW_CIDRS=
 ```
@@ -37,16 +39,16 @@ Generate an initial admin password of at least 12 characters into a temporary pr
 
 For the deployed Orange Pi, the generated initial password is kept at `/srv/data/projecthub/secrets/bootstrap-admin.password`, owned by UID/GID 10001 with mode 0600 under a root-only directory. Retrieve it over SSH with `sudo cat` for the first login, change it in a password manager, then delete the file after confirming the new credential works.
 
-Check `systemctl status projecthub-agent projecthub`, `docker compose -p projecthub -f /srv/data/projecthub/compose.yaml ps`, and `curl --cacert /srv/data/projecthub/certs/projecthub-local-ca.crt https://<LAN-IP>/healthz`.
+Check `systemctl status projecthub-agent projecthub`, `docker compose -p projecthub -f /srv/data/projecthub/compose.yaml ps`, and `curl --cacert /srv/data/projecthub/certs/projecthub-local-ca.crt https://<LAN_IP>/healthz`.
 
 ## Trust the HTTPS certificate on devices
 
-Caddy creates a private root CA on first start and stores its private key in the persistent `projecthub_caddy-data` volume. Export only the public root certificate to `/srv/data/projecthub/certs/projecthub-local-ca.crt`; do not copy the private key. Transfer that certificate to each LAN computer or phone over the trusted LAN/SSH channel, compare its SHA-256 fingerprint over a separate trusted channel, and install it as a trusted root certificate on that device. The certificate file is not secret, but trust in it is security-sensitive. Browsers will then validate `https://<LAN-IP>` without bypassing certificate warnings. Removing/recreating the Caddy data volume creates a new CA and requires re-trusting it on every device.
+Caddy creates a private root CA on first start and stores its private key in the persistent `projecthub_caddy-data` volume. Export only the public root certificate to `/srv/data/projecthub/certs/projecthub-local-ca.crt`; do not copy the private key. Transfer that certificate to each LAN computer or phone over the trusted LAN/SSH channel, compare its SHA-256 fingerprint over a separate trusted channel, and install it as a trusted root certificate on that device. The certificate file is not secret, but trust in it is security-sensitive. Browsers will then validate `https://<LAN_IP>` without bypassing certificate warnings. Removing/recreating the Caddy data volume creates a new CA and requires re-trusting it on every device.
 
-For this Orange Pi, the current root certificate SHA-256 fingerprint is `C2:5D:C4:40:64:A5:1A:7E:6C:26:F3:AE:E2:40:3A:BE:31:6B:06:6C:F2:9D:E1:1B:C7:70:C6:C4:8C:9B:1B:1D`. The currently served leaf certificate has the IP SAN `192.168.1.32`; use `https://192.168.1.32/`. The CA file is `/srv/data/projecthub/certs/projecthub-local-ca.crt` on the Orange Pi. Copy that public certificate over the trusted SSH/LAN channel, then verify its fingerprint before installing it:
+For this Orange Pi, the current root certificate SHA-256 fingerprint is `<LOCAL_CA_SHA256>`. The currently served leaf certificate has the IP SAN `<LAN_IP>`; use `https://<LAN_IP>/`. The CA file is `/srv/data/projecthub/certs/projecthub-local-ca.crt` on the Orange Pi. Copy that public certificate over the trusted SSH/LAN channel, then verify its fingerprint before installing it:
 
 ```sh
-scp <admin>@192.168.1.32:/srv/data/projecthub/certs/projecthub-local-ca.crt .
+scp <admin>@<LAN_IP>:/srv/data/projecthub/certs/projecthub-local-ca.crt .
 openssl x509 -in projecthub-local-ca.crt -noout -fingerprint -sha256
 ```
 
@@ -56,20 +58,20 @@ The printed SHA-256 fingerprint must match the value above. On Windows, `certuti
 
 1. Open the `.crt` file and inspect the issuer/fingerprint, or verify it with `certutil -dump` before trusting it.
 2. Open `certmgr.msc`, choose **Current User**, then import into **Trusted Root Certification Authorities\Certificates**. This scope limits trust to the signed-in Windows account. Microsoft documents the Current User and Local Computer stores separately; use Local Computer only if all users on that PC need this private CA.
-3. Open `https://192.168.1.32/` in Edge or Chrome. Firefox normally uses third-party roots from the operating-system store; if it does not, use Firefox's Certificate Authorities settings and import the same verified root.
+3. Open `https://<LAN_IP>/` in Edge or Chrome. Firefox normally uses third-party roots from the operating-system store; if it does not, use Firefox's Certificate Authorities settings and import the same verified root.
 
 ### iPhone/iPad
 
 1. Transfer the `.crt` to the device through a trusted channel and compare the certificate fingerprint before installing it.
 2. Open the downloaded profile in Settings and install it.
 3. Manually enable it under **Settings > General > About > Certificate Trust Settings > Enable Full Trust for Root Certificates**. A manually installed profile is not automatically trusted for TLS; follow Apple's current steps.
-4. Open `https://192.168.1.32/`. Do not continue through a certificate warning.
+4. Open `https://<LAN_IP>/`. Do not continue through a certificate warning.
 
 ### Android phone
 
 1. Transfer the `.crt` through a trusted channel and verify the fingerprint first.
 2. In Settings, find **Security & privacy** or **Security > More security settings > Encryption & credentials > Install a certificate > CA certificate**. Menu names vary by Android release and device maker; use the manufacturer's instructions if these entries differ.
-3. Open `https://192.168.1.32/` in the browser. Android apps can choose not to trust user-added CAs, so browser trust must be tested on the actual phone. Never choose a certificate-warning bypass.
+3. Open `https://<LAN_IP>/` in the browser. Android apps can choose not to trust user-added CAs, so browser trust must be tested on the actual phone. Never choose a certificate-warning bypass.
 
 References: [Microsoft certificate stores](https://learn.microsoft.com/en-us/windows-server/identity/ad-cs/inspect-certificates-manage-certificate-stores), [Mozilla Firefox certificate authorities](https://support.mozilla.org/en-US/kb/setting-certificate-authorities-firefox), [Apple manual certificate trust](https://support.apple.com/en-us/102390), and [Android certificate settings](https://support.google.com/android/answer/9654714?hl=en).
 

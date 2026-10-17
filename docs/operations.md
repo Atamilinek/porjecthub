@@ -1,5 +1,7 @@
 # Backup, restore, and troubleshooting
 
+> **Public version note**: host-specific identifiers in this document have been replaced with placeholders (`<HOSTNAME>`). Acceptance dates, measurements, commands, and pass/fail results are unchanged. Substitute your own environment values when reproducing locally.
+
 ## Consistent backup
 
 The `backup` subcommand uses SQLite `VACUUM INTO` to write a consistent standalone database snapshot while the API is online. It refuses to overwrite an existing file, restricts the output to mode 0600, and rejects using the live database path as the output.
@@ -16,10 +18,10 @@ Copy backups off-host, encrypt them at rest, and define/verify retention appropr
 The Orange Pi currently keeps online backup files on `/srv/data`; there is no automated off-host replication configured. For an off-host copy, use a separate encrypted workstation/NAS with SSH access and sufficient free space. From that destination, stream the protected files through the existing Docker exec access (the host backup directory itself is not world-readable):
 
 ```sh
-ssh -T orangepi-zero3w \
+ssh -T <HOSTNAME> \
   "docker exec projecthub-api-1 cat /backups/projecthub-YYYYMMDDTHHMMSSZ.db" \
   > /path/on/encrypted-storage/projecthub-YYYYMMDDTHHMMSSZ.db
-ssh -T orangepi-zero3w \
+ssh -T <HOSTNAME> \
   "docker exec projecthub-api-1 cat /backups/projecthub-YYYYMMDDTHHMMSSZ.db.sha256" \
   > /path/on/encrypted-storage/projecthub-YYYYMMDDTHHMMSSZ.db.sha256
 cd /path/on/encrypted-storage
