@@ -117,7 +117,7 @@ python3 -m unittest discover -s scripts -p 'test_nvme_health_check.py' -v
 make smoke-local
 ```
 
-**arm64 上跑 `-race` 的前置条件**：Go 的 ThreadSanitizer 在 linux/arm64 上要求 48-bit 虚拟地址空间。Raspberry Pi OS 内核（如 `6.18.50+rpt-rpi-v8`）编成 39-bit VA（`CONFIG_ARM64_VA_BITS=39`），此时 `go test -race ./...` 会在每个包启动阶段直接 abort —— `FATAL: ThreadSanitizer: unsupported VMA range` / `Found 39 - Supported 48`，**没有任何测试真正执行**，但 Go 会把这些包报成 FAIL。在这类内核上改用 `go test ./...`；竞态检查请在 48-bit VA 主机上运行（x86_64，或 48-bit 的 arm64），CI 已固定执行 `go test -race ./...`。自查内核配置：
+**arm64 上跑 `-race` 的前置条件**：Go 的 ThreadSanitizer 在 linux/arm64 上要求 48-bit 虚拟地址空间。Raspberry Pi OS 内核（如 `6.18.50+rpt-rpi-v8`）编成 39-bit VA（`CONFIG_ARM64_VA_BITS=39`），此时 `go test -race ./...` 会对每个**含测试的**包在启动阶段直接 abort —— `FATAL: ThreadSanitizer: unsupported VMA range` / `Found 39 - Supported 48`，**没有任何测试真正执行**，但 Go 会把这些包报成 FAIL。在这类内核上改用 `go test ./...`；竞态检查请在 48-bit VA 主机上运行（x86_64，或 48-bit 的 arm64），CI 已固定执行 `go test -race ./...`。自查内核配置：
 
 ```sh
 grep CONFIG_ARM64_VA_BITS /boot/config-$(uname -r)
